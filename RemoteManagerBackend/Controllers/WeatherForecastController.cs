@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using RemoteManagerBackend.Data;
 
 namespace RemoteManagerBackend.Controllers
@@ -27,18 +28,19 @@ namespace RemoteManagerBackend.Controllers
             return "hayırdır";
         }
 
-
-        [HttpGet("{id}")]
-        public string Get(int id)
+        [HttpGet("user/{_email}")]
+        public IActionResult GetManagerByEmail(string _email)
         {
-            return ""+id;
+            
+            var value = _context.Managers.FirstOrDefault(v => v.email == _email);
+            return Ok(JsonConvert.SerializeObject(value.password));
         }
 
         [HttpPost]
-        public string Post(Models.Manager value)
+        public void Post(Models.Manager value)
         {
-         
-            return "TTO";
+            _context.Managers.AddAsync(value);
+            _context.SaveChanges();
         }
     }
 }
