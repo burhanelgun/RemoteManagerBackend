@@ -1,11 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using RemoteManagerBackend.Data;
+using RemoteManagerBackend.Models;
 
 namespace RemoteManagerBackend.Controllers
 {
@@ -27,17 +30,44 @@ namespace RemoteManagerBackend.Controllers
         {
             return "hayırdır";
         }
-
-        [HttpGet("user/{_email}")]
-        public IActionResult GetManagerByEmail(string _email)
+        [HttpPost("file")]
+        public async void UploadFile(IFormFile file)
         {
-            
-            var value = _context.Managers.FirstOrDefault(v => v.email == _email);
-            return Ok(JsonConvert.SerializeObject(value.password));
+            var filePath = Path.Combine(Directory.GetCurrentDirectory(), @"\\UBUNTU-N55SL\\cloudStorage", file.FileName);
+            using (var fileStream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(fileStream);
+            }
+
         }
 
-        [HttpPost]
-        public void Post(Models.Manager value)
+        [HttpPost("user/signin")]
+        public IActionResult signIn(Manager value)
+        {
+            try
+            {
+                Manager man  = _context.Managers.FirstOrDefault(v => v.email == value.email);
+                if (man.password == value.password)
+                {
+                   
+                    return Ok(JsonConvert.SerializeObject("Signed in"));
+                }
+                else
+                {
+                    return Ok(JsonConvert.SerializeObject("Wrong password"));
+                }
+
+            }
+            catch(NullReferenceException e)
+            {
+                return Ok(JsonConvert.SerializeObject("Wrong username"));
+                //return Redirect("http://192.168.1.37:4200/usercantfounds");
+            }
+
+        }
+
+        [HttpPost("user/signup")]
+        public void signUp(Manager value)
         {
             _context.Managers.AddAsync(value);
             _context.SaveChanges();
