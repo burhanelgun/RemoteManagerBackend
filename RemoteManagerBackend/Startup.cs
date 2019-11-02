@@ -12,7 +12,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using RemoteManagerBackend.Data;
 using Microsoft.EntityFrameworkCore;
-
+using Microsoft.Extensions.FileProviders;
+using System.IO;
 
 namespace RemoteManagerBackend
 {
@@ -29,6 +30,9 @@ namespace RemoteManagerBackend
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddDbContext<DataContext>(x=>x.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
+            services.AddSingleton<IFileProvider>(
+            new PhysicalFileProvider(
+                Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")));
             services.AddControllers();
             services.AddCors();
             services.AddMvc().AddNewtonsoftJson();

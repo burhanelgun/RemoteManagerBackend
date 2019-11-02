@@ -31,7 +31,7 @@ namespace RemoteManagerBackend.Controllers
             return "hayırdır";
         }
         [HttpPost("file")]
-        public async void UploadFile(IFormFile file)
+        public async Task UploadFile(IFormFile file)
         {
             var filePath = Path.Combine(Directory.GetCurrentDirectory(), @"\\UBUNTU-N55SL\\cloudStorage", file.FileName);
             using (var fileStream = new FileStream(filePath, FileMode.Create))
@@ -40,6 +40,38 @@ namespace RemoteManagerBackend.Controllers
             }
 
         }
+
+
+        [HttpPost("uploadCommandFile")]
+        public async Task Post1(IFormFile file)
+        {
+            var filePath = Path.Combine(Directory.GetCurrentDirectory(), @"\\UBUNTU-N55SL\\cloudStorage", file.FileName);
+            using (var fileStream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(fileStream);
+            }
+        }
+
+        [HttpPost("uploadParametersFile")]
+        public async Task Post2(IFormFile file)
+        {
+            var filePath = Path.Combine(Directory.GetCurrentDirectory(), @"\\UBUNTU-N55SL\\cloudStorage", file.FileName);
+            using (var fileStream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(fileStream);
+            }
+        }
+
+        [HttpPost("uploadExecutableFile")]
+        public async Task Post3(IFormFile file)
+        {
+            var filePath = Path.Combine(Directory.GetCurrentDirectory(), @"\\UBUNTU-N55SL\\cloudStorage", file.FileName);
+            using (var fileStream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(fileStream);
+            }
+        }
+
 
         [HttpPost("user/signin")]
         public IActionResult signIn(Manager value)
