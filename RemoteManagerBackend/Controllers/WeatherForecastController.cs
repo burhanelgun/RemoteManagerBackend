@@ -41,6 +41,20 @@ namespace RemoteManagerBackend.Controllers
 
         }
 
+        /*
+        [HttpPost("createjob")]
+        public async Task Post4([FromForm]string job)
+        {
+            var tutorObj = JsonConvert.DeserializeObject<CreateJob>(job);
+
+        }*/
+
+
+        [HttpPost("createjob")]
+        public async Task Post4([FromForm] string name,[FromForm] IFormFile commandFile, [FromForm] IFormFile parametersFile, [FromForm] IFormFile executableFile)
+        {
+
+        }
 
         [HttpPost("uploadCommandFile")]
         public async Task Post1(IFormFile file)

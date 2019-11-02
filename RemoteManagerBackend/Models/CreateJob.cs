@@ -9,9 +9,9 @@ namespace RemoteManagerBackend.Models
     public class CreateJob
     {
         public String jobName { get; set; }
-        public IFormFile commandFile { get; set; }
-        public IFormFile parametersFile { get; set; }
-        public IFormFile executableFile { get; set; }
+        public FormFile commandFile { get; set; }
+        public FormFile parametersFile { get; set; }
+        public FormFile executableFile { get; set; }
 
     }
 }
