@@ -51,8 +51,62 @@ namespace RemoteManagerBackend.Controllers
 
 
         [HttpPost("createjob")]
-        public async Task Post4([FromForm] string name,[FromForm] IFormFile commandFile, [FromForm] IFormFile parametersFile, [FromForm] IFormFile executableFile)
+        public async Task Post4([FromForm] string email, [FromForm] string name,[FromForm] IFormFile commandFile, [FromForm] IFormFile parametersFile, [FromForm] IFormFile executableFile)
         {
+
+            //run only on client1 machine(normally we need to determine a client between clients)
+            string clientName = "Client1";
+            
+
+            //specify the job path(in the newtwork storage)
+            String jobPath = @"\\UBUNTU-N55SL\\cloudStorage\\"+ clientName + "\\Manager-" + email + "\\queue\\Job-"+name+"\\";
+
+            //create the job path
+            if (!Directory.Exists(jobPath));
+                Directory.CreateDirectory(jobPath);
+
+
+            string doneDirPath= @"\\UBUNTU-N55SL\\cloudStorage\\" + clientName + "\\Manager-" + email + "\\done"+ "\\";
+            //create done directory
+            if (!Directory.Exists(doneDirPath)) ;
+                Directory.CreateDirectory(doneDirPath);
+
+
+            //create a Job object to store in the Jobs table
+            CreateJob createJob = new CreateJob();
+            createJob.email = email;
+            createJob.jobName = name;
+            createJob.commandFilePath = jobPath + commandFile.FileName;
+            createJob.parametersFilePath = jobPath + parametersFile.FileName;
+            createJob.executableFilePath = jobPath + executableFile.FileName;
+
+
+            //store the Job to Jobs table
+            await _context.Jobs.AddAsync(createJob);
+            _context.SaveChanges();
+
+
+            //copy command file of Job to the network storage 
+            var commandFilePath = Path.Combine(Directory.GetCurrentDirectory(), createJob.commandFilePath);
+            using (var fileStream = new FileStream(commandFilePath, FileMode.Create))
+            {
+                await commandFile.CopyToAsync(fileStream);
+            }
+
+            //copy command file of Job to the network storage
+            var parametersFilePath = Path.Combine(Directory.GetCurrentDirectory(), createJob.parametersFilePath);
+            using (var fileStream = new FileStream(parametersFilePath, FileMode.Create))
+            {
+                await parametersFile.CopyToAsync(fileStream);
+            }
+
+            //copy command file of Job to the network storage
+            var executableFilePath = Path.Combine(Directory.GetCurrentDirectory(), createJob.executableFilePath);
+            using (var fileStream = new FileStream(executableFilePath, FileMode.Create))
+            {
+                await executableFile.CopyToAsync(fileStream);
+            }
+
 
         }
 

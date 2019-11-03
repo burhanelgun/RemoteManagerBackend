@@ -8,10 +8,13 @@ namespace RemoteManagerBackend.Models
 {
     public class CreateJob
     {
+        public int id { get; set; }
+
+        public String email { get; set; }
         public String jobName { get; set; }
-        public FormFile commandFile { get; set; }
-        public FormFile parametersFile { get; set; }
-        public FormFile executableFile { get; set; }
+        public String commandFilePath { get; set; }
+        public String parametersFilePath { get; set; }
+        public String executableFilePath { get; set; }
 
     }
 }
