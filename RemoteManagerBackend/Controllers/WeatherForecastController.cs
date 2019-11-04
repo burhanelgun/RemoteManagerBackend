@@ -1,7 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Sockets;
+using System.Net.WebSockets;
+using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -59,14 +65,18 @@ namespace RemoteManagerBackend.Controllers
             
 
             //specify the job path(in the newtwork storage)
-            String jobPath = @"\\UBUNTU-N55SL\\cloudStorage\\"+ clientName + "\\Manager-" + email + "\\queue\\Job-"+name+"\\";
+            String jobPath = @"C:\Users\b\Desktop\samplejob\" + clientName + "\\Manager-" + email + "\\queue\\Job-"+name+"\\";
+            String jobName = "Job-"+name+"\n";
+            String managerName = "Manager-" + email;
+
 
             //create the job path
             if (!Directory.Exists(jobPath));
                 Directory.CreateDirectory(jobPath);
 
+            //            string doneDirPath= @"\\UBUNTU-N55SL\\cloudStorage\\" + clientName + "\\Manager-" + email + "\\done"+ "\\";
 
-            string doneDirPath= @"\\UBUNTU-N55SL\\cloudStorage\\" + clientName + "\\Manager-" + email + "\\done"+ "\\";
+            string doneDirPath = @"C:\Users\b\Desktop\samplejob\" + clientName + "\\Manager-" + email + "\\done"+ "\\";
             //create done directory
             if (!Directory.Exists(doneDirPath)) ;
                 Directory.CreateDirectory(doneDirPath);
@@ -107,6 +117,9 @@ namespace RemoteManagerBackend.Controllers
                 await executableFile.CopyToAsync(fileStream);
             }
 
+            executeClient("192.168.1.38", managerName+ "|" + jobName);
+
+
 
         }
 
@@ -118,6 +131,9 @@ namespace RemoteManagerBackend.Controllers
             {
                 await file.CopyToAsync(fileStream);
             }
+
+
+
         }
 
         [HttpPost("uploadParametersFile")]
@@ -138,6 +154,9 @@ namespace RemoteManagerBackend.Controllers
             {
                 await file.CopyToAsync(fileStream);
             }
+
+
+
         }
 
 
@@ -172,5 +191,106 @@ namespace RemoteManagerBackend.Controllers
             _context.Managers.AddAsync(value);
             _context.SaveChanges();
         }
+
+
+
+
+
+
+        static void executeClient(String ipAddress,String message)
+        {
+
+            try
+            {
+
+                // Establish the remote endpoint  
+                // for the socket. This example  
+                // uses port 11111 on the local  
+                // computer. 
+                IPHostEntry ipHost = Dns.GetHostEntry(Dns.GetHostName());
+                IPAddress ipAddr = ipHost.AddressList[0];
+                IPEndPoint localEndPoint = new IPEndPoint(IPAddress.Parse(ipAddress), 8888);
+
+                // Creation TCP/IP Socket using  
+                // Socket Class Costructor 
+                Socket sender = new Socket(IPAddress.Parse(ipAddress).AddressFamily,
+                           SocketType.Stream, ProtocolType.Tcp);
+
+                try
+                {
+
+                    // Connect Socket to the remote  
+                    // endpoint using method Connect() 
+                    sender.Connect(localEndPoint);
+
+                    // We print EndPoint information  
+                    // that we are connected 
+                    Console.WriteLine("Socket connected to -> {0} ",
+                                  sender.RemoteEndPoint.ToString());
+
+                    // Creation of messagge that 
+                    // we will send to Server 
+                    byte[] messageSent = Encoding.ASCII.GetBytes(message);
+                    int byteSent = sender.Send(messageSent);
+
+                    // Data buffer 
+                    byte[] messageReceived = new byte[1024];
+
+                    // We receive the messagge using  
+                    // the method Receive(). This  
+                    // method returns number of bytes 
+                    // received, that we'll use to  
+                    // convert them to string 
+                    int byteRecv = sender.Receive(messageReceived);
+                    Console.WriteLine("Message from Server -> {0}",
+                          Encoding.ASCII.GetString(messageReceived,
+                                                     0, byteRecv));
+
+                    // Close Socket using  
+                    // the method Close() 
+
+
+
+
+
+
+                    messageSent = Encoding.ASCII.GetBytes("bye");
+                    byteSent = sender.Send(messageSent);
+
+
+                    sender.Shutdown(SocketShutdown.Both);
+                    sender.Close();
+                }
+
+                // Manage of Socket's Exceptions 
+                catch (ArgumentNullException ane)
+                {
+
+                    Console.WriteLine("ArgumentNullException : {0}", ane.ToString());
+                }
+
+                catch (SocketException se)
+                {
+
+                    Debug.WriteLine("SocketException : {0}", se.ToString());
+                }
+
+                catch (Exception e)
+                {
+                    Console.WriteLine("Unexpected exception : {0}", e.ToString());
+                }
+            }
+
+            catch (Exception e)
+            {
+
+                Console.WriteLine(e.ToString());
+            }
+        }
+
+
+
+
+
     }
 }
