@@ -56,8 +56,8 @@ namespace RemoteManagerBackend.Controllers
         }*/
 
 
-        [HttpPost("createjob")]
-        public async Task Post4([FromForm] string email, [FromForm] string name,[FromForm] IFormFile commandFile, [FromForm] IFormFile parametersFile, [FromForm] IFormFile executableFile)
+        [HttpPost("createexecutablejob")]
+        public async Task Post4([FromForm] string email, [FromForm] string name,[FromForm] IFormFile commandFile, [FromForm] IFormFile parametersFile, [FromForm] IFormFile executableFile, [FromForm] string jobType)
         {
 
             //run only on client1 machine(normally we need to determine a client between clients)
@@ -66,8 +66,9 @@ namespace RemoteManagerBackend.Controllers
 
             //specify the job path(in the newtwork storage)
             String jobPath = @"\\UBUNTU-N55SL\\cloudStorage\\" + clientName + "\\Manager-" + email + "\\queue\\Job-"+name+"\\";
-            String jobName = "Job-"+name+"\n";
+            String jobName = "Job-"+name;
             String managerName = "Manager-" + email;
+            String typeJob = jobType;
 
 
             //create the job path
@@ -103,13 +104,14 @@ namespace RemoteManagerBackend.Controllers
 
             }
 
+            Debug.WriteLine("***typeJob:"+typeJob);
 
             //create a Job object to store in the Jobs table
 
             //if job type executable, create Executablejob,else if job type is archiver, create ArchiverJob
             Job newJob = new Job();
             //Job Type should came from the front end, I choose Executable type for trying.
-            newJob.type = "Executable";
+            newJob.type = typeJob;
             newJob.isDone = false;
             newJob.managerName = managerName;
             newJob.clientName = clientName;
@@ -157,11 +159,163 @@ namespace RemoteManagerBackend.Controllers
             }
 
             String client1IPAdress = "192.168.1.36";
-            executeClient(client1IPAdress, managerName+ "|" + jobName);
+            executeClient(client1IPAdress, managerName+ "|" + jobName + "|" + newJob.type + "\n");
 
 
 
         }
+
+
+
+
+
+
+        [HttpPost("createarchiverjob")]
+        public async Task Post6([FromForm] string email, [FromForm] string name, [FromForm] string jobType, [FromForm] IFormFile[] folders)
+        {
+
+            //run only on client1 machine(normally we need to determine a client between clients)
+            string clientName = "Client1";
+
+
+            //specify the job path(in the newtwork storage)
+            String jobPath = @"\\UBUNTU-N55SL\\cloudStorage\\" + clientName + "\\Manager-" + email + "\\queue\\Job-" + name + "\\";
+            String jobName = "Job-" + name;
+            String managerName = "Manager-" + email;
+            String typeJob = jobType;
+
+
+            //create the job path
+            Debug.WriteLine("jobPath:", jobPath);
+
+            if (!Directory.Exists(jobPath))
+            {
+                Debug.WriteLine("jobPath is not exist");
+
+                Directory.CreateDirectory(jobPath);
+
+                Debug.WriteLine("jobPath is created");
+
+
+            }
+
+
+
+
+
+
+
+
+
+
+
+            string doneDirPath = @"\\UBUNTU-N55SL\\cloudStorage\\" + clientName + "\\Manager-" + email + "\\done" + "\\";
+            //create done directory
+
+            Debug.WriteLine("doneDirPath:", doneDirPath);
+
+            if (!Directory.Exists(doneDirPath))
+            {
+                Debug.WriteLine("doneDirPath is not exist");
+
+                Directory.CreateDirectory(doneDirPath);
+
+                Debug.WriteLine("doneDirPath is created");
+
+            }
+
+            Debug.WriteLine("***typeJob:" + typeJob);
+
+            //create a Job object to store in the Jobs table
+
+            //if job type executable, create Executablejob,else if job type is archiver, create ArchiverJob
+            Job newJob = new Job();
+            //Job Type should came from the front end, I choose Executable type for trying.
+            newJob.type = typeJob;
+            newJob.isDone = false;
+            newJob.managerName = managerName;
+            newJob.clientName = clientName;
+            newJob.name = jobName;
+            newJob.path = jobPath;
+
+
+
+            //Jobs table content should like this.
+            //JobName, Job Manager, Job Client, isDone, JobPath, JobType(if isDone is true then JobPath will contain done folder)
+
+
+
+
+            //store the Job to Jobs table
+            await _context.Jobs.AddAsync(newJob);
+            _context.SaveChanges();
+
+            //String commandFilePath = jobPath + commandFile.FileName;
+
+            //copy command file of Job to the network storage 
+            /* var commandFilePathVar = Path.Combine(Directory.GetCurrentDirectory(), commandFilePath);
+             using (var fileStream = new FileStream(commandFilePathVar, FileMode.Create))
+             {
+                 await commandFile.CopyToAsync(fileStream);
+             }*/
+
+
+
+            //string[] tokens = str.Split(',');
+
+            for (int i = 0; i < folders.Length; i++)
+            {
+                string tempJobPath = jobPath;
+                string[] tokens = folders[i].FileName.Split('/');
+
+                for (int j = 0; j < (tokens.Length-1); ++j)
+                {
+
+                    string folderName = tokens[j];
+                    tempJobPath = tempJobPath + "\\" + folderName;
+
+                }
+
+                string folderPath = tempJobPath;
+
+                if (!Directory.Exists(folderPath))
+                {
+                    Debug.WriteLine("folderPath is not exist");
+
+                    Directory.CreateDirectory(folderPath);
+
+                    Debug.WriteLine("doneDirPath is created");
+
+                }
+
+                string filePath = folderPath + "/" + tokens[tokens.Length - 1];
+
+                var filePathVar = Path.Combine(Directory.GetCurrentDirectory(), filePath);
+                using (var fileStream = new FileStream(filePathVar, FileMode.Create))
+                {
+                    await folders[i].CopyToAsync(fileStream);
+                }
+
+
+
+            }
+
+ 
+
+            String client1IPAdress = "192.168.1.36";
+            executeClient(client1IPAdress, managerName + "|" + jobName+"|"+ newJob.type+"\n");
+
+
+        }
+
+
+
+
+
+
+
+
+
 
         [HttpPost("uploadCommandFile")]
         public async Task Post1(IFormFile file)
