@@ -34,7 +34,7 @@ namespace RemoteManagerBackend.Controllers
         [HttpGet]
         public string Get()
         {
-            return "hayırdır";
+            return "deneme";
         }
         [HttpPost("file")]
         public async Task UploadFile(IFormFile file)
@@ -65,59 +65,99 @@ namespace RemoteManagerBackend.Controllers
             
 
             //specify the job path(in the newtwork storage)
-            String jobPath = @"C:\Users\b\Desktop\samplejob\" + clientName + "\\Manager-" + email + "\\queue\\Job-"+name+"\\";
+            String jobPath = @"\\UBUNTU-N55SL\\cloudStorage\\" + clientName + "\\Manager-" + email + "\\queue\\Job-"+name+"\\";
             String jobName = "Job-"+name+"\n";
             String managerName = "Manager-" + email;
 
 
             //create the job path
-            if (!Directory.Exists(jobPath));
+            Debug.WriteLine("jobPath:", jobPath);
+
+            if (!Directory.Exists(jobPath))
+            {
+                Debug.WriteLine("jobPath is not exist");
+
                 Directory.CreateDirectory(jobPath);
+
+                Debug.WriteLine("jobPath is created");
+
+
+            }
 
             //            string doneDirPath= @"\\UBUNTU-N55SL\\cloudStorage\\" + clientName + "\\Manager-" + email + "\\done"+ "\\";
 
-            string doneDirPath = @"C:\Users\b\Desktop\samplejob\" + clientName + "\\Manager-" + email + "\\done"+ "\\";
+
+
+            string doneDirPath = @"\\UBUNTU-N55SL\\cloudStorage\\" + clientName + "\\Manager-" + email + "\\done"+ "\\";
             //create done directory
-            if (!Directory.Exists(doneDirPath)) ;
+
+            Debug.WriteLine("doneDirPath:", doneDirPath);
+
+            if (!Directory.Exists(doneDirPath))
+            {
+                Debug.WriteLine("doneDirPath is not exist");
+
                 Directory.CreateDirectory(doneDirPath);
+
+                Debug.WriteLine("doneDirPath is created");
+
+            }
 
 
             //create a Job object to store in the Jobs table
-            CreateJob createJob = new CreateJob();
-            createJob.email = email;
-            createJob.jobName = name;
-            createJob.commandFilePath = jobPath + commandFile.FileName;
-            createJob.parametersFilePath = jobPath + parametersFile.FileName;
-            createJob.executableFilePath = jobPath + executableFile.FileName;
+
+            //if job type executable, create Executablejob,else if job type is archiver, create ArchiverJob
+            Job newJob = new Job();
+            //Job Type should came from the front end, I choose Executable type for trying.
+            newJob.type = "Executable";
+            newJob.isDone = false;
+            newJob.managerName = managerName;
+            newJob.clientName = clientName;
+            newJob.name = jobName;
+            newJob.path = jobPath;
+
+            //for only Executable job(normally set to the ExecutableJob class datafields)
+            String commandFilePath = jobPath + commandFile.FileName;
+            String parametersFilePath = jobPath + parametersFile.FileName;
+            String executableFilePath = jobPath + executableFile.FileName;
+
+
+
+
+            //Jobs table content should like this.
+            //JobName, Job Manager, Job Client, isDone, JobPath, JobType(if isDone is true then JobPath will contain done folder)
+
+
 
 
             //store the Job to Jobs table
-            await _context.Jobs.AddAsync(createJob);
+            await _context.Jobs.AddAsync(newJob);
             _context.SaveChanges();
 
 
             //copy command file of Job to the network storage 
-            var commandFilePath = Path.Combine(Directory.GetCurrentDirectory(), createJob.commandFilePath);
-            using (var fileStream = new FileStream(commandFilePath, FileMode.Create))
+            var commandFilePathVar = Path.Combine(Directory.GetCurrentDirectory(), commandFilePath);
+            using (var fileStream = new FileStream(commandFilePathVar, FileMode.Create))
             {
                 await commandFile.CopyToAsync(fileStream);
             }
 
-            //copy command file of Job to the network storage
-            var parametersFilePath = Path.Combine(Directory.GetCurrentDirectory(), createJob.parametersFilePath);
-            using (var fileStream = new FileStream(parametersFilePath, FileMode.Create))
+            //copy parameters file of Job to the network storage
+            var parametersFilePathVar = Path.Combine(Directory.GetCurrentDirectory(), parametersFilePath);
+            using (var fileStream = new FileStream(parametersFilePathVar, FileMode.Create))
             {
                 await parametersFile.CopyToAsync(fileStream);
             }
 
-            //copy command file of Job to the network storage
-            var executableFilePath = Path.Combine(Directory.GetCurrentDirectory(), createJob.executableFilePath);
-            using (var fileStream = new FileStream(executableFilePath, FileMode.Create))
+            //copy executable file of Job to the network storage
+            var executableFilePathVar = Path.Combine(Directory.GetCurrentDirectory(), executableFilePath);
+            using (var fileStream = new FileStream(executableFilePathVar, FileMode.Create))
             {
                 await executableFile.CopyToAsync(fileStream);
             }
 
-            executeClient("192.168.1.38", managerName+ "|" + jobName);
+            String client1IPAdress = "192.168.1.36";
+            executeClient(client1IPAdress, managerName+ "|" + jobName);
 
 
 
@@ -228,26 +268,23 @@ namespace RemoteManagerBackend.Controllers
                     Console.WriteLine("Socket connected to -> {0} ",
                                   sender.RemoteEndPoint.ToString());
 
-                    // Creation of messagge that 
-                    // we will send to Server 
                     byte[] messageSent = Encoding.ASCII.GetBytes(message);
                     int byteSent = sender.Send(messageSent);
 
-                    // Data buffer 
                     byte[] messageReceived = new byte[1024];
 
-                    // We receive the messagge using  
-                    // the method Receive(). This  
-                    // method returns number of bytes 
-                    // received, that we'll use to  
-                    // convert them to string 
                     int byteRecv = sender.Receive(messageReceived);
-                    Console.WriteLine("Message from Server -> {0}",
+
+
+                    //take the messageReceived and then if job is in done folder 
+                    //then make true isDone flag in Jobs folder and update JobPath in Jobs table
+
+                    //Jobs table content should like this.
+                    //JobName, Job Manager, Job Client, isDone, JobPath , JobType(if isDone is true then JobPath will contain done folder)
+                    Debug.WriteLine("Message from Server -> {111203}",
                           Encoding.ASCII.GetString(messageReceived,
                                                      0, byteRecv));
 
-                    // Close Socket using  
-                    // the method Close() 
 
 
 

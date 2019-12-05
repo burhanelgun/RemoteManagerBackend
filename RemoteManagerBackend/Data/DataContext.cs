@@ -15,7 +15,7 @@ namespace RemoteManagerBackend.Data
         }
 
         public DbSet<Manager> Managers { get; set; }
-        public DbSet<CreateJob> Jobs { get; set; }
+        public DbSet<Job> Jobs { get; set; }
 
     }
 }
