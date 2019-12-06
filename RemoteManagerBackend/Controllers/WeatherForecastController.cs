@@ -56,6 +56,18 @@ namespace RemoteManagerBackend.Controllers
         }*/
 
 
+        [HttpGet("my-jobs/{managerName}")]
+        public string Get2(string managerName)
+        {
+
+            List<Job> managerJobs = _context.Jobs.Where(v => v.managerName == "Manager-"+managerName).ToList();
+
+            
+
+            return JsonConvert.SerializeObject(managerJobs);
+
+        }
+
         [HttpPost("createexecutablejob")]
         public async Task Post4([FromForm] string email, [FromForm] string name,[FromForm] IFormFile commandFile, [FromForm] IFormFile parametersFile, [FromForm] IFormFile executableFile, [FromForm] string jobType)
         {
@@ -116,6 +128,18 @@ namespace RemoteManagerBackend.Controllers
             newJob.managerName = managerName;
             newJob.clientName = clientName;
             newJob.name = jobName;
+
+            jobPath = jobPath.Replace("/", "\\");
+            jobPath = jobPath.Replace("//", "\\");
+            jobPath = jobPath.Replace("\\\\\\\\", "\\");
+            jobPath = jobPath.Replace("\\\\\\", "\\");
+            jobPath = jobPath.Replace("\\\\", "\\");
+            jobPath = jobPath.Replace("/", "\\");
+            jobPath = jobPath.Replace("//", "\\");
+
+            jobPath = "\\" + jobPath;
+
+
             newJob.path = jobPath;
 
             //for only Executable job(normally set to the ExecutableJob class datafields)
@@ -236,9 +260,17 @@ namespace RemoteManagerBackend.Controllers
             newJob.managerName = managerName;
             newJob.clientName = clientName;
             newJob.name = jobName;
+
+            jobPath = jobPath.Replace("/", "\\");
+            jobPath = jobPath.Replace("//", "\\");
+            jobPath = jobPath.Replace("\\\\\\\\", "\\");
+            jobPath = jobPath.Replace("\\\\\\", "\\");
+            jobPath = jobPath.Replace("\\\\", "\\");
+            jobPath = jobPath.Replace("/", "\\");
+            jobPath = jobPath.Replace("//", "\\");
+            jobPath = "\\" + jobPath;
+
             newJob.path = jobPath;
-
-
 
             //Jobs table content should like this.
             //JobName, Job Manager, Job Client, isDone, JobPath, JobType(if isDone is true then JobPath will contain done folder)
@@ -393,7 +425,7 @@ namespace RemoteManagerBackend.Controllers
 
 
 
-        static void executeClient(String ipAddress,String message)
+         void executeClient(String ipAddress,String message)
         {
 
             try
@@ -443,7 +475,44 @@ namespace RemoteManagerBackend.Controllers
 
 
 
+                    if (Encoding.ASCII.GetString(messageReceived, 0, byteRecv)!= "error")
+                    {
+                        string doneJobPath = Encoding.ASCII.GetString(messageReceived, 0, byteRecv);
 
+                        doneJobPath = doneJobPath.Replace("/", "\\");
+                        doneJobPath = doneJobPath.Replace("//", "\\");
+                        doneJobPath = doneJobPath.Replace("\\\\\\\\", "\\");
+                        doneJobPath = doneJobPath.Replace("\\\\\\", "\\");
+                        doneJobPath = doneJobPath.Replace("\\\\", "\\");
+                        doneJobPath = doneJobPath.Replace("/", "\\");
+                        doneJobPath = doneJobPath.Replace("//", "\\");
+                        doneJobPath = "\\" + doneJobPath;
+
+
+                        string[] tokens = doneJobPath.Split('*');
+                        tokens[2] = tokens[2].Substring(0, tokens[2].Length - 2);
+
+                        /*
+                        await _context.Jobs.AddAsync(newJob);
+                        _context.SaveChanges();
+                        */
+
+
+
+                        Job job = _context.Jobs.First(v => v.managerName == tokens[2] && v.name == tokens[1]);
+                        job.isDone = true;
+                        _context.SaveChanges();
+
+
+
+
+
+
+
+
+
+
+                    }
 
 
 
