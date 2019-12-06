@@ -158,7 +158,7 @@ namespace RemoteManagerBackend.Controllers
                 await executableFile.CopyToAsync(fileStream);
             }
 
-            String client1IPAdress = "192.168.1.36";
+            String client1IPAdress = "192.168.1.37";
             executeClient(client1IPAdress, managerName+ "|" + jobName + "|" + newJob.type + "\n");
 
 
@@ -263,6 +263,8 @@ namespace RemoteManagerBackend.Controllers
 
             //string[] tokens = str.Split(',');
 
+            string mainFolderName= folders[0].FileName.Split('/')[0]; ;
+
             for (int i = 0; i < folders.Length; i++)
             {
                 string tempJobPath = jobPath;
@@ -302,8 +304,8 @@ namespace RemoteManagerBackend.Controllers
 
  
 
-            String client1IPAdress = "192.168.1.36";
-            executeClient(client1IPAdress, managerName + "|" + jobName+"|"+ newJob.type+"\n");
+            String client1IPAdress = "192.168.1.37";
+            executeClient(client1IPAdress, managerName + "|" + jobName+"|"+ newJob.type + "|" + mainFolderName + "\n");
 
 
         }
