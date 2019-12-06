@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -182,7 +183,7 @@ namespace RemoteManagerBackend.Controllers
                 await executableFile.CopyToAsync(fileStream);
             }
 
-            String client1IPAdress = "192.168.1.37";
+            String client1IPAdress = "192.168.1.34";
             executeClient(client1IPAdress, managerName+ "|" + jobName + "|" + newJob.type + "\n");
 
 
@@ -336,7 +337,7 @@ namespace RemoteManagerBackend.Controllers
 
  
 
-            String client1IPAdress = "192.168.1.37";
+            String client1IPAdress = "192.168.1.34";
             executeClient(client1IPAdress, managerName + "|" + jobName+"|"+ newJob.type + "|" + mainFolderName + "\n");
 
 
@@ -501,6 +502,8 @@ namespace RemoteManagerBackend.Controllers
 
                         Job job = _context.Jobs.First(v => v.managerName == tokens[2] && v.name == tokens[1]);
                         job.isDone = true;
+                        job.path = doneJobPath.Split("*")[0];
+
                         _context.SaveChanges();
 
 
@@ -551,8 +554,35 @@ namespace RemoteManagerBackend.Controllers
         }
 
 
+        [HttpPost("downloadJob")]
+        public FileStream DownloadFile([FromForm] string email, [FromForm] string jobName)
+        {
 
+            email = "Manager-" + email;
+            jobName = jobName.Split(".")[0];
+
+
+            Job job = _context.Jobs.FirstOrDefault(v => v.managerName == email && v.name == jobName);
+
+            string startPath = job.path;
+            string zipPath =  "\\\\UBUNTU-N55SL\\cloudStorage\\Client1\\"+email+"\\done\\"+ jobName+".zip";
+            if (!System.IO.File.Exists(zipPath))
+            {
+                ZipFile.CreateFromDirectory(startPath, zipPath);
+            }
+
+            FileStream fileStream = new FileStream(zipPath, FileMode.Open, FileAccess.Read);
+
+            return fileStream;
+        }
 
 
     }
+
+
+
+
+
+
+
 }
