@@ -24,10 +24,15 @@ namespace RemoteManagerBackend.Controllers
     public class WeatherForecastController : ControllerBase
     {
         DataContext _context;
+        static Client[] clients;
 
 
         public WeatherForecastController(DataContext context)
         {
+            clients = new Client[2];
+            clients[0] = new Client("192.168.1.34","Client1");
+            clients[1] = new Client("192.168.1.35", "Client2");
+
             _context = context;
         }
 
@@ -48,14 +53,6 @@ namespace RemoteManagerBackend.Controllers
 
         }
 
-        /*
-        [HttpPost("createjob")]
-        public async Task Post4([FromForm]string job)
-        {
-            var tutorObj = JsonConvert.DeserializeObject<CreateJob>(job);
-
-        }*/
-
 
         [HttpGet("my-jobs/{managerName}")]
         public string Get2(string managerName)
@@ -70,16 +67,19 @@ namespace RemoteManagerBackend.Controllers
         }
 
         [HttpPost("createexecutablejob")]
-        public async Task Post4([FromForm] string email, [FromForm] string name,[FromForm] IFormFile commandFile, [FromForm] IFormFile parametersFile, [FromForm] IFormFile executableFile, [FromForm] string jobType)
+        public async Task Post4([FromForm] string email, [FromForm] string name, [FromForm] IFormFile commandFile, [FromForm] IFormFile parametersFile, [FromForm] IFormFile executableFile, [FromForm] string jobType)
         {
 
             //run only on client1 machine(normally we need to determine a client between clients)
-            string clientName = "Client1";
-            
+            int index = selectClient();
+            //index = 1;//for now
+
+
+
 
             //specify the job path(in the newtwork storage)
-            String jobPath = @"\\UBUNTU-N55SL\\cloudStorage\\" + clientName + "\\Manager-" + email + "\\queue\\Job-"+name+"\\";
-            String jobName = "Job-"+name;
+            String jobPath = @"\\UBUNTU-N55SL\\cloudStorage\\" + clients[index].name + "\\Manager-" + email + "\\queue\\Job-" + name + "\\";
+            String jobName = "Job-" + name;
             String managerName = "Manager-" + email;
             String typeJob = jobType;
 
@@ -102,7 +102,7 @@ namespace RemoteManagerBackend.Controllers
 
 
 
-            string doneDirPath = @"\\UBUNTU-N55SL\\cloudStorage\\" + clientName + "\\Manager-" + email + "\\done"+ "\\";
+            string doneDirPath = @"\\UBUNTU-N55SL\\cloudStorage\\" + clients[index].name + "\\Manager-" + email + "\\done" + "\\";
             //create done directory
 
             Debug.WriteLine("doneDirPath:", doneDirPath);
@@ -117,7 +117,7 @@ namespace RemoteManagerBackend.Controllers
 
             }
 
-            Debug.WriteLine("***typeJob:"+typeJob);
+            Debug.WriteLine("***typeJob:" + typeJob);
 
             //create a Job object to store in the Jobs table
 
@@ -127,7 +127,7 @@ namespace RemoteManagerBackend.Controllers
             newJob.type = typeJob;
             newJob.isDone = false;
             newJob.managerName = managerName;
-            newJob.clientName = clientName;
+            newJob.clientName = clients[index].name;
             newJob.name = jobName;
 
             jobPath = jobPath.Replace("/", "\\");
@@ -183,9 +183,9 @@ namespace RemoteManagerBackend.Controllers
                 await executableFile.CopyToAsync(fileStream);
             }
 
-            String client1IPAdress = "192.168.1.34";
-            executeClient(client1IPAdress, managerName+ "|" + jobName + "|" + newJob.type + "\n");
-
+            clients[index].jobCount++;
+            executeClient(clients[index].ipAddress, managerName + "|" + jobName + "|" + newJob.type + "\n");
+            clients[index].jobCount--;
 
 
         }
@@ -200,11 +200,13 @@ namespace RemoteManagerBackend.Controllers
         {
 
             //run only on client1 machine(normally we need to determine a client between clients)
-            string clientName = "Client1";
+            int index = selectClient();
+            //index = 1;//for now
+            clients[index].jobCount++;
 
 
             //specify the job path(in the newtwork storage)
-            String jobPath = @"\\UBUNTU-N55SL\\cloudStorage\\" + clientName + "\\Manager-" + email + "\\queue\\Job-" + name + "\\";
+            String jobPath = @"\\UBUNTU-N55SL\\cloudStorage\\" + clients[index].name + "\\Manager-" + email + "\\queue\\Job-" + name + "\\";
             String jobName = "Job-" + name;
             String managerName = "Manager-" + email;
             String typeJob = jobType;
@@ -234,7 +236,7 @@ namespace RemoteManagerBackend.Controllers
 
 
 
-            string doneDirPath = @"\\UBUNTU-N55SL\\cloudStorage\\" + clientName + "\\Manager-" + email + "\\done" + "\\";
+            string doneDirPath = @"\\UBUNTU-N55SL\\cloudStorage\\" + clients[index].name + "\\Manager-" + email + "\\done" + "\\";
             //create done directory
 
             Debug.WriteLine("doneDirPath:", doneDirPath);
@@ -259,7 +261,7 @@ namespace RemoteManagerBackend.Controllers
             newJob.type = typeJob;
             newJob.isDone = false;
             newJob.managerName = managerName;
-            newJob.clientName = clientName;
+            newJob.clientName = clients[index].name;
             newJob.name = jobName;
 
             jobPath = jobPath.Replace("/", "\\");
@@ -335,22 +337,28 @@ namespace RemoteManagerBackend.Controllers
 
             }
 
- 
 
-            String client1IPAdress = "192.168.1.34";
-            executeClient(client1IPAdress, managerName + "|" + jobName+"|"+ newJob.type + "|" + mainFolderName + "\n");
+            
+            executeClient(clients[index].ipAddress, managerName + "|" + jobName+"|"+ newJob.type + "|" + mainFolderName + "\n");
+            clients[index].jobCount--;
 
 
         }
 
-
-
-
-
-
-
-
-
+        private int selectClient()
+        {
+            int minJobCount = 999999;
+            int index = 0;
+            for(int i = 0; i < clients.Length; i++)
+            {
+                if (clients[i].jobCount <minJobCount)
+                {
+                    minJobCount = clients[i].jobCount;
+                    index = i;
+                }
+            }
+            return index;
+        }
 
         [HttpPost("uploadCommandFile")]
         public async Task Post1(IFormFile file)
