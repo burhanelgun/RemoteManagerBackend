@@ -7,17 +7,11 @@ namespace RemoteManagerBackend.Models
 {
     public class Client
     {
-        public string ipAddress { get; set; }
+        public int id { get; set; }
+        public string ip { get; set; }
         public int jobCount { get; set; }
-
         public string name { get; set; }
 
-        public Client(string ipAddress, string name)
-        {
-            this.ipAddress = ipAddress;
-            this.jobCount = 0;
-            this.name = name;
-        }
 
     }
 }

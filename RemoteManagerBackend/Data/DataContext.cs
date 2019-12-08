@@ -11,11 +11,11 @@ namespace RemoteManagerBackend.Data
     {
         public DataContext (DbContextOptions<DataContext> options):base(options)
         {
-
         }
 
         public DbSet<Manager> Managers { get; set; }
         public DbSet<Job> Jobs { get; set; }
+        public DbSet<Client> Clients { get; set; }
 
     }
 }
