@@ -79,6 +79,7 @@ namespace RemoteManagerBackend.Controllers
         [HttpPost("client/add")]
         public void addClient(Client client)
         {
+            client.jobCount = 0;
             _context.Clients.AddAsync(client);
             _context.SaveChanges();
         }
@@ -250,8 +251,40 @@ namespace RemoteManagerBackend.Controllers
 
             //select client
             Client selectedClient = _context.Clients.ToList().OrderBy(o => o.jobCount).ToList()[0];
-            selectedClient.jobCount++;
-            _context.SaveChanges();
+
+
+
+
+
+
+            if (selectedClient != null)
+            {
+                bool saveFailed;
+                do
+                {
+                    saveFailed = false;
+                    ++selectedClient.jobCount;
+
+                    try
+                    {
+                        _context.SaveChanges();
+                    }
+                    catch (DbUpdateConcurrencyException e)
+                    {
+                        saveFailed = true;
+                        e.Entries.Single().Reload();
+                    }
+                } while (saveFailed);
+            }
+
+
+
+
+
+
+
+
+
 
 
             //index = 1;//for now
@@ -407,8 +440,26 @@ namespace RemoteManagerBackend.Controllers
             */
 
             Client findSelectedClientAgain = _context.Clients.First(v => v.name == selectedClient.name && v.ip == selectedClient.ip);
-            findSelectedClientAgain.jobCount--;
-            _context.SaveChanges();
+
+            if (findSelectedClientAgain != null)
+            {
+                bool saveFailed;
+                do
+                {
+                    saveFailed = false;
+                    --findSelectedClientAgain.jobCount;
+
+                    try
+                    {
+                        _context.SaveChanges();
+                    }
+                    catch (DbUpdateConcurrencyException e)
+                    {
+                        saveFailed = true;
+                        e.Entries.Single().Reload();
+                    }
+                } while (saveFailed);
+            }
 
 
         }

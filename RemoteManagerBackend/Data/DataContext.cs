@@ -11,6 +11,13 @@ namespace RemoteManagerBackend.Data
     {
         public DataContext (DbContextOptions<DataContext> options):base(options)
         {
+
+
+        }
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<Client>()
+                .Property(a => a.jobCount).IsConcurrencyToken();
         }
 
         public DbSet<Manager> Managers { get; set; }
