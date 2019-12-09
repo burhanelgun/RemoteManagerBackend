@@ -168,7 +168,7 @@ namespace RemoteManagerBackend.Controllers
             Job newJob = new Job();
             //Job Type should came from the front end, I choose Executable type for trying.
             newJob.type = typeJob;
-            newJob.isDone = false;
+            newJob.status = "working";
             newJob.managerName = managerName;
             //newJob.clientName = _context.clients[index].name;
             newJob.clientName = selectedClient.name;
@@ -350,7 +350,7 @@ namespace RemoteManagerBackend.Controllers
             Job newJob = new Job();
             //Job Type should came from the front end, I choose Executable type for trying.
             newJob.type = typeJob;
-            newJob.isDone = false;
+            newJob.status = "working";
             newJob.managerName = managerName;
             newJob.clientName = selectedClient.name;
             //newJob.clientName = "Client1";
@@ -542,7 +542,7 @@ namespace RemoteManagerBackend.Controllers
 
          void executeClient(String ipAddress,String message)
         {
-
+            string[] tokens=null;
             try
             {
 
@@ -604,7 +604,7 @@ namespace RemoteManagerBackend.Controllers
                         doneJobPath = "\\" + doneJobPath;
 
 
-                        string[] tokens = doneJobPath.Split('*');
+                        tokens = doneJobPath.Split('*');
                         tokens[2] = tokens[2].Substring(0, tokens[2].Length - 2);
 
                         /*
@@ -615,7 +615,7 @@ namespace RemoteManagerBackend.Controllers
 
 
                         Job job = _context.Jobs.First(v => v.managerName == tokens[2] && v.name == tokens[1]);
-                        job.isDone = true;
+                        job.status = "finish";
                         job.path = doneJobPath.Split("*")[0];
 
                         _context.SaveChanges();
@@ -645,24 +645,38 @@ namespace RemoteManagerBackend.Controllers
                 catch (ArgumentNullException ane)
                 {
 
+                    Job job = _context.Jobs.First(v => v.managerName == tokens[2] && v.name == tokens[1]);
+                    job.status = "fail";
+                    _context.SaveChanges();
                     Console.WriteLine("ArgumentNullException : {0}", ane.ToString());
                 }
 
                 catch (SocketException se)
                 {
 
+
+                    Job job = _context.Jobs.First(v => v.managerName == tokens[2] && v.name == tokens[1]);
+                    job.status = "fail";
+                    _context.SaveChanges();
                     Debug.WriteLine("SocketException : {0}", se.ToString());
                 }
 
                 catch (Exception e)
                 {
+
+                    Job job = _context.Jobs.First(v => v.managerName == tokens[2] && v.name == tokens[1]);
+                    job.status = "fail";
+                    _context.SaveChanges();
+
                     Console.WriteLine("Unexpected exception : {0}", e.ToString());
                 }
             }
 
             catch (Exception e)
             {
-
+                Job job = _context.Jobs.First(v => v.managerName == tokens[2] && v.name == tokens[1]);
+                job.status = "fail";
+                _context.SaveChanges();
                 Console.WriteLine(e.ToString());
             }
         }

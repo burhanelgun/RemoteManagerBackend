@@ -14,7 +14,7 @@ namespace RemoteManagerBackend.Models
         public String managerName { get; set; }
         public String clientName { get; set; }
         public String type { get; set; }
-        public Boolean isDone { get; set; }
+        public String status { get; set; }
 
 
     }
