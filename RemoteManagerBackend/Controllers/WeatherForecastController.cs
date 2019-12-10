@@ -29,8 +29,6 @@ namespace RemoteManagerBackend.Controllers
 
         public WeatherForecastController(DataContext context)
         {
-
-
             _context = context;
         }
 
@@ -58,8 +56,6 @@ namespace RemoteManagerBackend.Controllers
 
             List<Job> managerJobs = _context.Jobs.Where(v => v.managerName == "Manager-"+managerName).ToList();
 
-            
-
             return JsonConvert.SerializeObject(managerJobs);
 
         }
@@ -69,8 +65,6 @@ namespace RemoteManagerBackend.Controllers
         {
 
             List<Client> clients = _context.Clients.ToList();
-
-
 
             return JsonConvert.SerializeObject(clients);
 
@@ -112,10 +106,27 @@ namespace RemoteManagerBackend.Controllers
 
 
             Client selectedClient = _context.Clients.ToList().OrderBy(o => o.jobCount).ToList()[0];
-            selectedClient.jobCount++;
-            await _context.SaveChangesAsync();
 
 
+            if (selectedClient != null)
+            {
+                bool saveFailed;
+                do
+                {
+                    saveFailed = false;
+                    ++selectedClient.jobCount;
+
+                    try
+                    {
+                        _context.SaveChanges();
+                    }
+                    catch (DbUpdateConcurrencyException e)
+                    {
+                        saveFailed = true;
+                        e.Entries.Single().Reload();
+                    }
+                } while (saveFailed);
+            }
 
             //specify the job path(in the newtwork storage)
             String jobPath = baseStoragePath + selectedClient.name + "\\Manager-" + email + "\\queue\\Job-" + name + "\\";
@@ -139,11 +150,7 @@ namespace RemoteManagerBackend.Controllers
 
             }
 
-            //            string doneDirPath= @"\\UBUNTU-N55SL\\cloudStorage\\" + clientName + "\\Manager-" + email + "\\done"+ "\\";
 
-
-
-            //string doneDirPath = @"\\UBUNTU-N55SL\\cloudStorage\\" + _context.clients[index].name + "\\Manager-" + email + "\\done" + "\\";
             string doneDirPath = baseStoragePath + selectedClient.name + "\\Manager-" + email + "\\done" + "\\";
 
             //create done directory
@@ -195,13 +202,6 @@ namespace RemoteManagerBackend.Controllers
 
 
 
-
-            //Jobs table content should like this.
-            //JobName, Job Manager, Job Client, isDone, JobPath, JobType(if isDone is true then JobPath will contain done folder)
-
-
-
-
             //store the Job to Jobs table
             await _context.Jobs.AddAsync(newJob);
             _context.SaveChanges();
@@ -231,11 +231,252 @@ namespace RemoteManagerBackend.Controllers
             executeClient(selectedClient.ip, baseStoragePath + "|" + selectedClient.name + "|" + managerName + "|" + jobName + "|" + newJob.type + "\n");
 
             Client findSelectedClientAgain = _context.Clients.First(v => v.name == selectedClient.name && v.ip == selectedClient.ip);
-            findSelectedClientAgain.jobCount--;
-            await _context.SaveChangesAsync();
+
+            if (findSelectedClientAgain != null)
+            {
+                bool saveFailed;
+                do
+                {
+                    saveFailed = false;
+                    --findSelectedClientAgain.jobCount;
+
+                    try
+                    {
+                        _context.SaveChanges();
+                    }
+                    catch (DbUpdateConcurrencyException e)
+                    {
+                        saveFailed = true;
+                        e.Entries.Single().Reload();
+                    }
+                } while (saveFailed);
+            }
 
 
         }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        [HttpPost("createdifferentparamexecutables")]
+        public async Task Post5([FromForm] string email, [FromForm] string name, [FromForm] string command, [FromForm] IFormFile executableFile, [FromForm] string jobType, [FromForm] string[] parameterSets)
+        {
+
+            for(int i = 0; i < parameterSets.Length; i++)
+            {
+
+
+                //parameters sets shared equally all clients
+                Client selectedClient = _context.Clients.ToList()[i%2];
+
+
+                if (selectedClient != null)
+                {
+                    bool saveFailed;
+                    do
+                    {
+                        saveFailed = false;
+                        ++selectedClient.jobCount;
+
+                        try
+                        {
+                            _context.SaveChanges();
+                        }
+                        catch (DbUpdateConcurrencyException e)
+                        {
+                            saveFailed = true;
+                            e.Entries.Single().Reload();
+                        }
+                    } while (saveFailed);
+                }
+
+                //specify the job path(in the newtwork storage)
+                String jobPath = baseStoragePath + selectedClient.name + "\\Manager-" + email + "\\queue\\Job-" + name + "-"+(i+1) + "\\";
+
+                String jobName = "Job-" + name + "-"+ (i + 1);
+                String managerName = "Manager-" + email;
+                String typeJob = jobType;
+
+
+                //create the job path
+                Debug.WriteLine("jobPath:", jobPath);
+
+                if (!Directory.Exists(jobPath))
+                {
+                    Debug.WriteLine("jobPath is not exist");
+
+                    Directory.CreateDirectory(jobPath);
+
+                    Debug.WriteLine("jobPath is created");
+
+                }
+
+
+
+                String doneDirPath = baseStoragePath + selectedClient.name + "\\Manager-" + email + "\\done" + "\\";
+
+                //create done directory
+
+                Debug.WriteLine("doneDirPath:", doneDirPath);
+
+                if (!Directory.Exists(doneDirPath))
+                {
+                    Debug.WriteLine("doneDirPath is not exist");
+
+                    Directory.CreateDirectory(doneDirPath);
+
+                    Debug.WriteLine("doneDirPath is created");
+
+                }
+
+                Debug.WriteLine("***typeJob:" + typeJob);
+
+                //create a Job object to store in the Jobs table
+
+                //if job type executable, create Executablejob,else if job type is archiver, create ArchiverJob
+                Job newJob = new Job();
+                //Job Type should came from the front end, I choose Executable type for trying.
+                newJob.type = typeJob;
+                newJob.status = "working";
+                newJob.managerName = managerName;
+                //newJob.clientName = _context.clients[index].name;
+                newJob.clientName = selectedClient.name;
+
+                newJob.name = jobName;
+
+                jobPath = jobPath.Replace("/", "\\");
+                jobPath = jobPath.Replace("//", "\\");
+                jobPath = jobPath.Replace("\\\\\\\\", "\\");
+                jobPath = jobPath.Replace("\\\\\\", "\\");
+                jobPath = jobPath.Replace("\\\\", "\\");
+                jobPath = jobPath.Replace("/", "\\");
+                jobPath = jobPath.Replace("//", "\\");
+
+                jobPath = "\\" + jobPath;
+
+
+                newJob.path = jobPath;
+
+
+
+                String executableFilePath = jobPath + executableFile.FileName;
+
+
+
+                //store the Job to Jobs table
+                await _context.Jobs.AddAsync(newJob);
+                _context.SaveChanges();
+
+
+
+                //copy executable file of Job to the network storage
+                var executableFilePathVar = Path.Combine(Directory.GetCurrentDirectory(), executableFilePath);
+                using (var fileStream = new FileStream(executableFilePathVar, FileMode.Create))
+                {
+                    await executableFile.CopyToAsync(fileStream);
+                }
+
+                executeClient(selectedClient.ip, baseStoragePath + "|" + selectedClient.name + "|" + managerName + "|" + jobName + "|" + newJob.type + "|" + command + "|" + parameterSets[i]+ "|" + executableFile.FileName +"\n");
+
+                Client findSelectedClientAgain = _context.Clients.First(v => v.name == selectedClient.name && v.ip == selectedClient.ip);
+
+                if (findSelectedClientAgain != null)
+                {
+                    bool saveFailed;
+                    do
+                    {
+                        saveFailed = false;
+                        --findSelectedClientAgain.jobCount;
+
+                        try
+                        {
+                            _context.SaveChanges();
+                        }
+                        catch (DbUpdateConcurrencyException e)
+                        {
+                            saveFailed = true;
+                            e.Entries.Single().Reload();
+                        }
+                    } while (saveFailed);
+                }
+
+
+            }
+
+
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -251,8 +492,6 @@ namespace RemoteManagerBackend.Controllers
 
             //select client
             Client selectedClient = _context.Clients.ToList().OrderBy(o => o.jobCount).ToList()[0];
-
-
 
 
 
@@ -279,22 +518,9 @@ namespace RemoteManagerBackend.Controllers
 
 
 
-
-
-
-
-
-
-
-
-            //index = 1;//for now
-            //_context.clients[index].jobCount = 10;
-
-
             //specify the job path(in the newtwork storage)
             
             String jobPath = baseStoragePath + selectedClient.name + "\\Manager-" + email + "\\queue\\Job-" + name + "\\";
-            //String jobPath = @"\\UBUNTU-N55SL\\cloudStorage\\" +"Client1"+ "\\Manager-" + email + "\\queue\\Job-" + name + "\\";
 
             String jobName = "Job-" + name;
             String managerName = "Manager-" + email;
@@ -317,16 +543,7 @@ namespace RemoteManagerBackend.Controllers
 
 
 
-
-
-
-
-
-
-
-
             string doneDirPath = baseStoragePath + selectedClient.name + "\\Manager-" + email + "\\done" + "\\";
-            //string doneDirPath = @"\\UBUNTU-N55SL\\cloudStorage\\" + "Client1" + "\\Manager-" + email + "\\done" + "\\";
 
             //create done directory
 
@@ -368,9 +585,6 @@ namespace RemoteManagerBackend.Controllers
 
             newJob.path = jobPath;
 
-            //Jobs table content should like this.
-            //JobName, Job Manager, Job Client, isDone, JobPath, JobType(if isDone is true then JobPath will contain done folder)
-
 
 
 
@@ -378,18 +592,6 @@ namespace RemoteManagerBackend.Controllers
             await _context.Jobs.AddAsync(newJob);
             _context.SaveChanges();
 
-            //String commandFilePath = jobPath + commandFile.FileName;
-
-            //copy command file of Job to the network storage 
-            /* var commandFilePathVar = Path.Combine(Directory.GetCurrentDirectory(), commandFilePath);
-             using (var fileStream = new FileStream(commandFilePathVar, FileMode.Create))
-             {
-                 await commandFile.CopyToAsync(fileStream);
-             }*/
-
-
-
-            //string[] tokens = str.Split(',');
 
             string mainFolderName= folders[0].FileName.Split('/')[0]; ;
 
@@ -434,10 +636,6 @@ namespace RemoteManagerBackend.Controllers
 
             executeClient(selectedClient.ip, baseStoragePath + "|" + selectedClient.name + "|" + managerName + "|" + jobName+"|"+ newJob.type + "|" + mainFolderName + "\n");
 
-            /*  
-            selectedClient.jobCount--;
-            await _context.SaveChangesAsync();
-            */
 
             Client findSelectedClientAgain = _context.Clients.First(v => v.name == selectedClient.name && v.ip == selectedClient.ip);
 
@@ -579,11 +777,7 @@ namespace RemoteManagerBackend.Controllers
                     int byteRecv = sender.Receive(messageReceived);
 
 
-                    //take the messageReceived and then if job is in done folder 
-                    //then make true isDone flag in Jobs folder and update JobPath in Jobs table
-
                     //Jobs table content should like this.
-                    //JobName, Job Manager, Job Client, isDone, JobPath , JobType(if isDone is true then JobPath will contain done folder)
                     Debug.WriteLine("Message from Server -> {111203}",
                           Encoding.ASCII.GetString(messageReceived,
                                                      0, byteRecv));
@@ -607,27 +801,12 @@ namespace RemoteManagerBackend.Controllers
                         tokens = doneJobPath.Split('*');
                         tokens[2] = tokens[2].Substring(0, tokens[2].Length - 2);
 
-                        /*
-                        await _context.Jobs.AddAsync(newJob);
-                        _context.SaveChanges();
-                        */
-
-
 
                         Job job = _context.Jobs.First(v => v.managerName == tokens[2] && v.name == tokens[1]);
                         job.status = "finish";
                         job.path = doneJobPath.Split("*")[0];
 
                         _context.SaveChanges();
-
-
-
-
-
-
-
-
-
 
                     }
 
