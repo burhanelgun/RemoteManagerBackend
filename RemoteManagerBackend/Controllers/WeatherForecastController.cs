@@ -8,6 +8,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
@@ -25,7 +26,7 @@ namespace RemoteManagerBackend.Controllers
     public class WeatherForecastController : ControllerBase
     {
         DataContext _context;
-        String baseStoragePath = @"\\UBUNTU-N55SL\\cloudStorage\\";
+        String baseStoragePath = @"\\"+"192.168.1.41"+"\\cloudStorage\\";
 
         public WeatherForecastController(DataContext context)
         {
@@ -41,7 +42,7 @@ namespace RemoteManagerBackend.Controllers
         [HttpPost("file")]
         public async Task UploadFile(IFormFile file)
         {
-            var filePath = Path.Combine(Directory.GetCurrentDirectory(), @"\\UBUNTU-N55SL\\cloudStorage", file.FileName);
+            var filePath = Path.Combine(Directory.GetCurrentDirectory(), baseStoragePath, file.FileName);
             using (var fileStream = new FileStream(filePath, FileMode.Create))
             {
                 await file.CopyToAsync(fileStream);
@@ -667,7 +668,7 @@ namespace RemoteManagerBackend.Controllers
         [HttpPost("uploadCommandFile")]
         public async Task Post1(IFormFile file)
         {
-            var filePath = Path.Combine(Directory.GetCurrentDirectory(), @"\\UBUNTU-N55SL\\cloudStorage", file.FileName);
+            var filePath = Path.Combine(Directory.GetCurrentDirectory(), baseStoragePath, file.FileName);
             using (var fileStream = new FileStream(filePath, FileMode.Create))
             {
                 await file.CopyToAsync(fileStream);
@@ -680,7 +681,7 @@ namespace RemoteManagerBackend.Controllers
         [HttpPost("uploadParametersFile")]
         public async Task Post2(IFormFile file)
         {
-            var filePath = Path.Combine(Directory.GetCurrentDirectory(), @"\\UBUNTU-N55SL\\cloudStorage", file.FileName);
+            var filePath = Path.Combine(Directory.GetCurrentDirectory(), baseStoragePath, file.FileName);
             using (var fileStream = new FileStream(filePath, FileMode.Create))
             {
                 await file.CopyToAsync(fileStream);
@@ -690,7 +691,7 @@ namespace RemoteManagerBackend.Controllers
         [HttpPost("uploadExecutableFile")]
         public async Task Post3(IFormFile file)
         {
-            var filePath = Path.Combine(Directory.GetCurrentDirectory(), @"\\UBUNTU-N55SL\\cloudStorage", file.FileName);
+            var filePath = Path.Combine(Directory.GetCurrentDirectory(), baseStoragePath, file.FileName);
             using (var fileStream = new FileStream(filePath, FileMode.Create))
             {
                 await file.CopyToAsync(fileStream);
@@ -799,7 +800,10 @@ namespace RemoteManagerBackend.Controllers
 
 
                         tokens = doneJobPath.Split('*');
-                        tokens[2] = tokens[2].Substring(0, tokens[2].Length - 2);
+
+                        // linux client 
+                        tokens[2] = Regex.Replace(tokens[2], @"\t|\n|\r", "");
+                        // windows client tokens[2] = tokens[2].Substring(0, tokens[2].Length - 2);
 
 
                         Job job = _context.Jobs.First(v => v.managerName == tokens[2] && v.name == tokens[1]);
@@ -872,7 +876,7 @@ namespace RemoteManagerBackend.Controllers
             Job job = _context.Jobs.FirstOrDefault(v => v.managerName == email && v.name == jobName);
 
             string startPath = job.path;
-            string zipPath =  "\\\\UBUNTU-N55SL\\cloudStorage\\"+job.clientName+"\\"+email+"\\done\\"+ jobName+".zip";
+            string zipPath = baseStoragePath + job.clientName+"\\"+email+"\\done\\"+ jobName+".zip";
             if (!System.IO.File.Exists(zipPath))
             {
                 ZipFile.CreateFromDirectory(startPath, zipPath);
