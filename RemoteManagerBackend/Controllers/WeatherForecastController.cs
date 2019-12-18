@@ -26,7 +26,7 @@ namespace RemoteManagerBackend.Controllers
     public class WeatherForecastController : ControllerBase
     {
         DataContext _context;
-        String baseStoragePath = @"\\"+"192.168.1.41"+"\\cloudStorage\\";
+        String baseStoragePath = @"\\"+"192.168.43.188"+"\\cloudStorage\\";
 
         public WeatherForecastController(DataContext context)
         {
@@ -130,8 +130,8 @@ namespace RemoteManagerBackend.Controllers
             }
 
             //specify the job path(in the newtwork storage)
-            String jobPath = baseStoragePath + selectedClient.name + "\\Manager-" + email + "\\queue\\Job-" + name + "\\";
-
+                String jobPath = baseStoragePath + selectedClient.name +        "\\Manager-" + email + "\\Job-" + name + "\\";
+            //--String jobPath = baseStoragePath + selectedClient.name + "\\queue\\Manager-" + email + "\\Job-" + name + "\\";
             String jobName = "Job-" + name;
             String managerName = "Manager-" + email;
             String typeJob = jobType;
@@ -152,7 +152,7 @@ namespace RemoteManagerBackend.Controllers
             }
 
 
-            string doneDirPath = baseStoragePath + selectedClient.name + "\\Manager-" + email + "\\done" + "\\";
+           /*-- string doneDirPath = baseStoragePath + selectedClient.name + "\\Manager-" + email + "\\done" + "\\";
 
             //create done directory
 
@@ -167,7 +167,7 @@ namespace RemoteManagerBackend.Controllers
                 Debug.WriteLine("doneDirPath is created");
 
             }
-
+            --*/
             Debug.WriteLine("***typeJob:" + typeJob);
 
             //create a Job object to store in the Jobs table
@@ -306,7 +306,7 @@ namespace RemoteManagerBackend.Controllers
 
 
                 //parameters sets shared equally all clients
-                Client selectedClient = _context.Clients.ToList()[i%2];
+                Client selectedClient = _context.Clients.ToList()[i % (_context.Clients.ToList().Count)];
 
 
                 if (selectedClient != null)
@@ -330,8 +330,8 @@ namespace RemoteManagerBackend.Controllers
                 }
 
                 //specify the job path(in the newtwork storage)
-                String jobPath = baseStoragePath + selectedClient.name + "\\Manager-" + email + "\\queue\\Job-" + name + "-"+(i+1) + "\\";
-
+                //--String jobPath = baseStoragePath + selectedClient.name + "\\Manager-" + email + "\\queue\\Job-" + name + "-"+(i+1) + "\\";
+                    String jobPath = baseStoragePath + selectedClient.name + "\\Manager-" + email +        "\\Job-" + name + "-"+(i+1) + "\\";
                 String jobName = "Job-" + name + "-"+ (i + 1);
                 String managerName = "Manager-" + email;
                 String typeJob = jobType;
@@ -352,7 +352,7 @@ namespace RemoteManagerBackend.Controllers
 
 
 
-                String doneDirPath = baseStoragePath + selectedClient.name + "\\Manager-" + email + "\\done" + "\\";
+               /*-- String doneDirPath = baseStoragePath + selectedClient.name + "\\Manager-" + email + "\\done" + "\\";
 
                 //create done directory
 
@@ -367,7 +367,7 @@ namespace RemoteManagerBackend.Controllers
                     Debug.WriteLine("doneDirPath is created");
 
                 }
-
+                --*/
                 Debug.WriteLine("***typeJob:" + typeJob);
 
                 //create a Job object to store in the Jobs table
@@ -521,7 +521,8 @@ namespace RemoteManagerBackend.Controllers
 
             //specify the job path(in the newtwork storage)
             
-            String jobPath = baseStoragePath + selectedClient.name + "\\Manager-" + email + "\\queue\\Job-" + name + "\\";
+            //--String jobPath = baseStoragePath + selectedClient.name + "\\Manager-" + email + "\\queue\\Job-" + name + "\\";
+                String jobPath = baseStoragePath + selectedClient.name + "\\Manager-" + email +         "\\Job-" + name + "\\";
 
             String jobName = "Job-" + name;
             String managerName = "Manager-" + email;
@@ -544,7 +545,7 @@ namespace RemoteManagerBackend.Controllers
 
 
 
-            string doneDirPath = baseStoragePath + selectedClient.name + "\\Manager-" + email + "\\done" + "\\";
+            /*--string doneDirPath = baseStoragePath + selectedClient.name + "\\Manager-" + email + "\\done" + "\\";
 
             //create done directory
 
@@ -559,6 +560,7 @@ namespace RemoteManagerBackend.Controllers
                 Debug.WriteLine("doneDirPath is created");
 
             }
+            --*/
 
             Debug.WriteLine("***typeJob:" + typeJob);
 
@@ -876,7 +878,8 @@ namespace RemoteManagerBackend.Controllers
             Job job = _context.Jobs.FirstOrDefault(v => v.managerName == email && v.name == jobName);
 
             string startPath = job.path;
-            string zipPath = baseStoragePath + job.clientName+"\\"+email+"\\done\\"+ jobName+".zip";
+            //--string zipPath = baseStoragePath + job.clientName+"\\"+email+"\\done\\"+ jobName+".zip";
+                string zipPath = baseStoragePath + job.clientName+"\\"+email+"\\"      + jobName + ".zip";
             if (!System.IO.File.Exists(zipPath))
             {
                 ZipFile.CreateFromDirectory(startPath, zipPath);
