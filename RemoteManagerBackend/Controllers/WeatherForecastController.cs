@@ -200,11 +200,12 @@ namespace RemoteManagerBackend.Controllers
             if (parametersFile != null)
             {
                 parametersFilePath = jobPath + parametersFile.FileName;
-            }
-            var parametersFilePathVar = Path.Combine(Directory.GetCurrentDirectory(), parametersFilePath);
-            using (var fileStream = new FileStream(parametersFilePathVar, FileMode.Create))
-            {
-                await parametersFile.CopyToAsync(fileStream);
+
+                var parametersFilePathVar = Path.Combine(Directory.GetCurrentDirectory(), parametersFilePath);
+                using (var fileStream = new FileStream(parametersFilePathVar, FileMode.Create))
+                {
+                    await parametersFile.CopyToAsync(fileStream);
+                }
             }
 
 
@@ -212,42 +213,43 @@ namespace RemoteManagerBackend.Controllers
 
 
             String[] executableFilesPaths = null;
-            if (executableFiles == null)
+            if (executableFiles != null)
             {
                 executableFilesPaths = new String[executableFiles.Length];
                 for (int i = 0; i < executableFiles.Length; i++)
                 {
                     executableFilesPaths[i] = jobPath + executableFiles[i].FileName;
                 }
-            }
-            for (int i = 0; i < executableFiles.Length; i++)
-            {
-                var executableFilePathVar = Path.Combine(Directory.GetCurrentDirectory(), executableFilesPaths[i]);
-                using (var fileStream = new FileStream(executableFilePathVar, FileMode.Create))
+
+                for (int i = 0; i < executableFiles.Length; i++)
                 {
-                    await executableFiles[i].CopyToAsync(fileStream);
+                    var executableFilePathVar = Path.Combine(Directory.GetCurrentDirectory(), executableFilesPaths[i]);
+                    using (var fileStream = new FileStream(executableFilePathVar, FileMode.Create))
+                    {
+                        await executableFiles[i].CopyToAsync(fileStream);
+                    }
                 }
             }
-
 
 
 
 
             String[] inputFilesPaths = null;
-            if (executableFiles == null)
+            if (inputFiles != null)
             {
                 inputFilesPaths = new String[inputFiles.Length];
-                for (int i = 0; i < executableFiles.Length; i++)
+                for (int i = 0; i < inputFiles.Length; i++)
                 {
                     inputFilesPaths[i] = jobPath + inputFiles[i].FileName;
                 }
-            }
-            for (int i = 0; i < inputFiles.Length; i++)
-            {
-                var executableFilePathVar = Path.Combine(Directory.GetCurrentDirectory(), inputFilesPaths[i]);
-                using (var fileStream = new FileStream(executableFilePathVar, FileMode.Create))
+
+                for (int i = 0; i < inputFiles.Length; i++)
                 {
-                    await inputFiles[i].CopyToAsync(fileStream);
+                    var executableFilePathVar = Path.Combine(Directory.GetCurrentDirectory(), inputFilesPaths[i]);
+                    using (var fileStream = new FileStream(executableFilePathVar, FileMode.Create))
+                    {
+                        await inputFiles[i].CopyToAsync(fileStream);
+                    }
                 }
             }
 
@@ -265,7 +267,7 @@ namespace RemoteManagerBackend.Controllers
 
 
 
-            //executeClient(selectedClient.ip, baseStoragePath + "|" + selectedClient.name + "|" + managerName + "|" + jobName + "|" + newJob.type + "\n");
+            executeClient(selectedClient.ip, baseStoragePath + "|" + selectedClient.name + "|" + managerName + "|" + jobName + "|" + newJob.type + "\n");
 
             Client findSelectedClientAgain = _context.Clients.First(v => v.name == selectedClient.name && v.ip == selectedClient.ip);
 
