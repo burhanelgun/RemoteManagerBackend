@@ -235,226 +235,6 @@ namespace RemoteManagerBackend.Controllers
 
 
 
-        [HttpPost("createparametersbatchjob")]
-        public async Task CreateParametersBatchJob([FromForm] string email, [FromForm] string name, [FromForm] IFormFile pythonScriptFile, [FromForm] IFormFile parametersFile, [FromForm] IFormFile[] executableFiles, [FromForm] IFormFile[] inputFiles, [FromForm] string jobType)
-        {
-
-            List<string> parameterSetsList = new List<string>();
-            using (var reader = new StreamReader(parametersFile.OpenReadStream()))
-            {
-                int j = 0;
-                while (reader.Peek() >= 0)
-                {
-                    parameterSetsList.Add(reader.ReadLine());
-                    j++;
-                }
-                
-            }
-            string[] parameterSets = parameterSetsList.ToArray();
-
-
-            
-
-
-
-
-
-            for (int k = 0; k < parameterSets.Length; k++)
-            {
-
-
-                //parameters sets shared equally all clients
-                Client selectedClient = _context.Clients.ToList()[k % (_context.Clients.ToList().Count)];
-
-
-                if (selectedClient != null)
-                {
-                    bool saveFailed;
-                    do
-                    {
-                        saveFailed = false;
-                        ++selectedClient.jobCount;
-
-                        try
-                        {
-                            _context.SaveChanges();
-                        }
-                        catch (DbUpdateConcurrencyException e)
-                        {
-                            saveFailed = true;
-                            e.Entries.Single().Reload();
-                        }
-                    } while (saveFailed);
-                }
-
-
-                //specify the job path(in the newtwork storage)
-                String jobPath = baseStoragePath + selectedClient.name + "\\Manager-" + email + "\\Job-" + name + "-" + (k + 1) + "\\";
-
-                String jobName = "Job-" + name + "-" + (k + 1);
-                String managerName = "Manager-" + email;
-                String typeJob = jobType;
-
-
-
-                //create the job path
-                Debug.WriteLine("jobPath:", jobPath);
-
-                if (!Directory.Exists(jobPath))
-                {
-                    Debug.WriteLine("jobPath is not exist");
-
-                    Directory.CreateDirectory(jobPath);
-
-                    Debug.WriteLine("jobPath is created");
-
-
-                }
-
-
-
-                Debug.WriteLine("***typeJob:" + typeJob);
-
-                //create a Job object to store in the Jobs table
-
-                //if job type executable, create Executablejob,else if job type is archiver, create ArchiverJob
-                Job newJob = new Job();
-                //Job Type should came from the front end, I choose Executable type for trying.
-                newJob.type = typeJob;
-                newJob.status = "working";
-                newJob.managerName = managerName;
-                //newJob.clientName = _context.clients[index].name;
-                newJob.clientName = selectedClient.name;
-
-                newJob.name = jobName;
-
-                jobPath = jobPath.Replace("/", "\\");
-                jobPath = jobPath.Replace("//", "\\");
-                jobPath = jobPath.Replace("\\\\\\\\", "\\");
-                jobPath = jobPath.Replace("\\\\\\", "\\");
-                jobPath = jobPath.Replace("\\\\", "\\");
-                jobPath = jobPath.Replace("/", "\\");
-                jobPath = jobPath.Replace("//", "\\");
-
-                jobPath = "\\" + jobPath;
-
-
-                newJob.path = jobPath;
-
-
-
-
-                //for only Executable job(normally set to the ExecutableJob class datafields)
-                String pythonScriptFilePath = jobPath + pythonScriptFile.FileName;
-                var pythonScriptFilePathVar = Path.Combine(Directory.GetCurrentDirectory(), pythonScriptFilePath);
-                using (var fileStream = new FileStream(pythonScriptFilePathVar, FileMode.Create))
-                {
-                    await pythonScriptFile.CopyToAsync(fileStream);
-                }
-
-
-
-
-
-                String parametersFilePath = null;
-                if (parametersFile != null)
-                {
-                    parametersFilePath = jobPath + parametersFile.FileName;
-
-                    var parametersFilePathVar = Path.Combine(Directory.GetCurrentDirectory(), parametersFilePath);
-                    using (var fileStream = new FileStream(parametersFilePathVar, FileMode.Create))
-                    {
-                        await parametersFile.CopyToAsync(fileStream);
-                    }
-                }
-
-
-
-
-
-                String[] executableFilesPaths = null;
-                if (executableFiles != null)
-                {
-                    executableFilesPaths = new String[executableFiles.Length];
-                    for (int i = 0; i < executableFiles.Length; i++)
-                    {
-                        executableFilesPaths[i] = jobPath + executableFiles[i].FileName;
-                    }
-
-                    for (int i = 0; i < executableFiles.Length; i++)
-                    {
-                        var executableFilePathVar = Path.Combine(Directory.GetCurrentDirectory(), executableFilesPaths[i]);
-                        using (var fileStream = new FileStream(executableFilePathVar, FileMode.Create))
-                        {
-                            await executableFiles[i].CopyToAsync(fileStream);
-                        }
-                    }
-                }
-
-
-
-
-                String[] inputFilesPaths = null;
-                if (inputFiles != null)
-                {
-                    inputFilesPaths = new String[inputFiles.Length];
-                    for (int i = 0; i < inputFiles.Length; i++)
-                    {
-                        inputFilesPaths[i] = jobPath + inputFiles[i].FileName;
-                    }
-
-                    for (int i = 0; i < inputFiles.Length; i++)
-                    {
-                        var executableFilePathVar = Path.Combine(Directory.GetCurrentDirectory(), inputFilesPaths[i]);
-                        using (var fileStream = new FileStream(executableFilePathVar, FileMode.Create))
-                        {
-                            await inputFiles[i].CopyToAsync(fileStream);
-                        }
-                    }
-                }
-
-
-
-
-
-                //store the Job to Jobs table
-                await _context.Jobs.AddAsync(newJob);
-                _context.SaveChanges();
-
-
-
-
-
-                //eski executeClient(selectedClient.ip, baseStoragePath + "|" + selectedClient.name + "|" + managerName + "|" + jobName + "|" + newJob.type + "|" + command + "|" + parameterSets[i] + "|" + executableFile.FileName + "\n");
-
-
-                executeClient(selectedClient.ip, baseStoragePath + "|" + selectedClient.name + "|" + managerName + "|" + jobName + "|" + newJob.type + "|" + parameterSets[k] + "\n");
-
-                Client findSelectedClientAgain = _context.Clients.First(v => v.name == selectedClient.name && v.ip == selectedClient.ip);
-
-                if (findSelectedClientAgain != null)
-                {
-                    bool saveFailed;
-                    do
-                    {
-                        saveFailed = false;
-                        --findSelectedClientAgain.jobCount;
-
-                        try
-                        {
-                            _context.SaveChanges();
-                        }
-                        catch (DbUpdateConcurrencyException e)
-                        {
-                            saveFailed = true;
-                            e.Entries.Single().Reload();
-                        }
-                    } while (saveFailed);
-                }
-            }
-            
-
-        }
 
 
         public static string getInputGroup(string inputFolder)
@@ -1582,6 +1362,257 @@ namespace RemoteManagerBackend.Controllers
 
 
         }
+
+
+
+
+
+
+        [HttpPost("createparametersbatchjob")]
+        public async Task CreateParametersBatchJob([FromForm] string email, [FromForm] string name, [FromForm] IFormFile pythonScriptFile, [FromForm] IFormFile parametersFile, [FromForm] IFormFile[] executableFiles, [FromForm] IFormFile[] inputFiles, [FromForm] string jobType)
+        {
+
+            List<string> parameterSetsList = new List<string>();
+            Dictionary<Client, List<string>> clientAndJobs = new Dictionary<Client, List<string>>();
+
+
+            using (var reader = new StreamReader(parametersFile.OpenReadStream()))
+            {
+                int j = 0;
+                while (reader.Peek() >= 0)
+                {
+                    parameterSetsList.Add(reader.ReadLine());
+                    j++;
+                }
+
+            }
+            string[] parameterSets = parameterSetsList.ToArray();
+
+
+
+
+
+
+
+
+            for (int k = 0; k < parameterSets.Length; k++)
+            {
+
+
+                //parameters sets shared equally all clients
+                Client selectedClient = _context.Clients.ToList()[k % (_context.Clients.ToList().Count)];
+
+
+                if (selectedClient != null)
+                {
+                    bool saveFailed;
+                    do
+                    {
+                        saveFailed = false;
+                        ++selectedClient.jobCount;
+
+                        try
+                        {
+                            _context.SaveChanges();
+                        }
+                        catch (DbUpdateConcurrencyException e)
+                        {
+                            saveFailed = true;
+                            e.Entries.Single().Reload();
+                        }
+                    } while (saveFailed);
+                }
+
+
+                //specify the job path(in the newtwork storage)
+                String jobPath = baseStoragePath + selectedClient.name + "\\Manager-" + email + "\\Job-" + name + "-" + (k + 1) + "\\";
+
+                String jobName = "Job-" + name + "-" + (k + 1);
+                String managerName = "Manager-" + email;
+                String typeJob = jobType;
+
+
+
+                //create the job path
+                Debug.WriteLine("jobPath:", jobPath);
+
+                if (!Directory.Exists(jobPath))
+                {
+                    Debug.WriteLine("jobPath is not exist");
+
+                    Directory.CreateDirectory(jobPath);
+
+                    Debug.WriteLine("jobPath is created");
+
+
+                }
+
+
+
+                Debug.WriteLine("***typeJob:" + typeJob);
+
+                //create a Job object to store in the Jobs table
+
+                //if job type executable, create Executablejob,else if job type is archiver, create ArchiverJob
+                Job newJob = new Job();
+                //Job Type should came from the front end, I choose Executable type for trying.
+                newJob.type = typeJob;
+                newJob.status = "working";
+                newJob.managerName = managerName;
+                //newJob.clientName = _context.clients[index].name;
+                newJob.clientName = selectedClient.name;
+
+                newJob.name = jobName;
+
+                jobPath = jobPath.Replace("/", "\\");
+                jobPath = jobPath.Replace("//", "\\");
+                jobPath = jobPath.Replace("\\\\\\\\", "\\");
+                jobPath = jobPath.Replace("\\\\\\", "\\");
+                jobPath = jobPath.Replace("\\\\", "\\");
+                jobPath = jobPath.Replace("/", "\\");
+                jobPath = jobPath.Replace("//", "\\");
+
+                jobPath = "\\" + jobPath;
+
+
+                newJob.path = jobPath;
+
+
+
+
+                //for only Executable job(normally set to the ExecutableJob class datafields)
+                String pythonScriptFilePath = jobPath + pythonScriptFile.FileName;
+                var pythonScriptFilePathVar = Path.Combine(Directory.GetCurrentDirectory(), pythonScriptFilePath);
+                using (var fileStream = new FileStream(pythonScriptFilePathVar, FileMode.Create))
+                {
+                    await pythonScriptFile.CopyToAsync(fileStream);
+                }
+
+
+
+
+
+                String parametersFilePath = null;
+                if (parametersFile != null)
+                {
+                    parametersFilePath = jobPath + parametersFile.FileName;
+
+                    var parametersFilePathVar = Path.Combine(Directory.GetCurrentDirectory(), parametersFilePath);
+                    using (var fileStream = new FileStream(parametersFilePathVar, FileMode.Create))
+                    {
+                        await parametersFile.CopyToAsync(fileStream);
+                    }
+                }
+
+
+
+
+
+                String[] executableFilesPaths = null;
+                if (executableFiles != null)
+                {
+                    executableFilesPaths = new String[executableFiles.Length];
+                    for (int i = 0; i < executableFiles.Length; i++)
+                    {
+                        executableFilesPaths[i] = jobPath + executableFiles[i].FileName;
+                    }
+
+                    for (int i = 0; i < executableFiles.Length; i++)
+                    {
+                        var executableFilePathVar = Path.Combine(Directory.GetCurrentDirectory(), executableFilesPaths[i]);
+                        using (var fileStream = new FileStream(executableFilePathVar, FileMode.Create))
+                        {
+                            await executableFiles[i].CopyToAsync(fileStream);
+                        }
+                    }
+                }
+
+
+
+
+                String[] inputFilesPaths = null;
+                if (inputFiles != null)
+                {
+                    inputFilesPaths = new String[inputFiles.Length];
+                    for (int i = 0; i < inputFiles.Length; i++)
+                    {
+                        inputFilesPaths[i] = jobPath + inputFiles[i].FileName;
+                    }
+
+                    for (int i = 0; i < inputFiles.Length; i++)
+                    {
+                        var executableFilePathVar = Path.Combine(Directory.GetCurrentDirectory(), inputFilesPaths[i]);
+                        using (var fileStream = new FileStream(executableFilePathVar, FileMode.Create))
+                        {
+                            await inputFiles[i].CopyToAsync(fileStream);
+                        }
+                    }
+                }
+
+
+
+
+
+                //store the Job to Jobs table
+                await _context.Jobs.AddAsync(newJob);
+                _context.SaveChanges();
+
+
+
+
+
+
+
+                //executeClient(selectedClient.ip, baseStoragePath + "|" + selectedClient.name + "|" + managerName + "|" + jobName + "|" + newJob.type + "|" + parameterSets[k] + "\n");
+
+
+                if (clientAndJobs.ContainsKey(selectedClient))
+                {
+                    List<string> test = new List<string>();
+                    test = clientAndJobs[selectedClient];
+                    test.Add(baseStoragePath + "|" + selectedClient.name + "|" + managerName + "|" + jobName + "|" + newJob.type + "|" + parameterSets[k] + "\n");
+                    clientAndJobs[selectedClient] = test;
+                }
+                else
+                {
+                    List<string> test = new List<string>();
+                    test.Add(baseStoragePath + "|" + selectedClient.name + "|" + managerName + "|" + jobName + "|" + newJob.type + "|" + parameterSets[k] + "\n");
+                    clientAndJobs.Add(selectedClient, test);
+                }
+
+
+
+
+
+
+              
+
+            }
+
+            Thread[] threadArrEachClient = new Thread[clientAndJobs.Count];
+            int p = 0;
+            foreach (KeyValuePair<Client, List<string>> entry in clientAndJobs)
+            {
+
+                threadArrEachClient[p] = new Thread(() => executeClient2(entry.Key, entry.Value));
+                threadArrEachClient[p].Start();
+                p++;
+
+            }
+
+            for (int i = 0; i < threadArrEachClient.Length; i++)
+            {
+                threadArrEachClient[i].Join();
+            }
+
+        }
+
+
+
+
+
+
+
         void executeClient2(Client client, List<string> jobs)
         {
 
@@ -1682,7 +1713,7 @@ namespace RemoteManagerBackend.Controllers
 
 
 
-                        Client findSelectedClientAgain = _context.Clients.First(v => v.ip == ipAddress);
+                        Client findSelectedClientAgain = _context.Clients.First(v => v.ip == client.ip);
 
                         if (findSelectedClientAgain != null)
                         {
@@ -1703,20 +1734,6 @@ namespace RemoteManagerBackend.Controllers
                                 }
                             } while (saveFailed);
                         }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1762,8 +1779,8 @@ namespace RemoteManagerBackend.Controllers
                     job.status = "fail";
                     _context.SaveChanges();*/
                     Console.WriteLine(e.ToString());
+
                 }
-            
 
 
 
@@ -1773,6 +1790,11 @@ namespace RemoteManagerBackend.Controllers
 
 
 
+
+
+
+
+            }
 
 
 
@@ -1784,12 +1806,7 @@ namespace RemoteManagerBackend.Controllers
         }
 
 
-
-
-    }
-
-
-    void executeClient(String ipAddress,String message)
+        void executeClient(String ipAddress,String message)
         {
             string[] tokens=null;
             try
