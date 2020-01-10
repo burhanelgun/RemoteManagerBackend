@@ -26,7 +26,7 @@ namespace RemoteManagerBackend.Controllers
     public class WeatherForecastController : ControllerBase
     {
         DataContext _context;
-        String baseStoragePath = @"\\"+"192.168.1.42"+"\\cloudStorage\\";
+        String baseStoragePath = @"\\"+"192.168.1.39"+"\\cloudStorage\\";
 
         public WeatherForecastController(DataContext context)
         {
@@ -64,19 +64,128 @@ namespace RemoteManagerBackend.Controllers
         [HttpGet("{clients}")]
         public string Get3()
         {
+            try{
+                List<Client> clients = _context.Clients.ToList();
 
-            List<Client> clients = _context.Clients.ToList();
+                return JsonConvert.SerializeObject(clients);
+            }
+            catch(Exception e)
+            {
+                List<Client> clients = new List<Client>();
 
-            return JsonConvert.SerializeObject(clients);
+                return JsonConvert.SerializeObject(clients);
+            }
+
 
         }
 
         [HttpPost("client/add")]
         public void addClient(Client client)
         {
-            client.jobCount = 0;
-            _context.Clients.AddAsync(client);
-            _context.SaveChanges();
+            String ipAddress = client.ip;
+            String message = "SendInfo\n";
+
+
+            string[] tokens = null;
+            try
+            {
+
+                // Establish the remote endpoint  
+                // for the socket. This example  
+                // uses port 11111 on the local  
+                // computer. 
+                IPHostEntry ipHost = Dns.GetHostEntry(Dns.GetHostName());
+                IPAddress ipAddr = ipHost.AddressList[0];
+                IPEndPoint localEndPoint = new IPEndPoint(IPAddress.Parse(ipAddress), 8888);
+
+                // Creation TCP/IP Socket using  
+                // Socket Class Costructor 
+                Socket sender = new Socket(IPAddress.Parse(ipAddress).AddressFamily,
+                           SocketType.Stream, ProtocolType.Tcp);
+
+                try
+                {
+
+                    // Connect Socket to the remote  
+                    // endpoint using method Connect() 
+                    sender.Connect(localEndPoint);
+
+                    // We print EndPoint information  
+                    // that we are connected 
+                    Console.WriteLine("Socket connected to -> {0} ",
+                                  sender.RemoteEndPoint.ToString());
+
+                    byte[] messageSent = Encoding.ASCII.GetBytes(message);
+                    int byteSent = sender.Send(messageSent);
+
+
+                    byte[] messageReceived = new byte[1024];
+
+                    int byteRecv = sender.Receive(messageReceived);
+
+
+                    //Jobs table content should like this.
+                    Debug.WriteLine("Message from Server -> {111203}",
+                          Encoding.ASCII.GetString(messageReceived,
+                                                     0, byteRecv));
+
+                    client.coreCount = Int32.Parse(Encoding.ASCII.GetString(messageReceived,
+                                                     0, byteRecv).Split(':')[1]);
+                    client.jobCount = 0;
+                    _context.Clients.AddAsync(client);
+                    _context.SaveChanges();
+
+
+
+                    messageSent = Encoding.ASCII.GetBytes("bye");
+                    byteSent = sender.Send(messageSent);
+
+
+                    sender.Shutdown(SocketShutdown.Both);
+                    sender.Close();
+                }
+
+                // Manage of Socket's Exceptions 
+                catch (ArgumentNullException ane)
+                {
+
+                    Job job = _context.Jobs.First(v => v.managerName == tokens[2] && v.name == tokens[1]);
+                    job.status = "fail";
+                    _context.SaveChanges();
+                    Console.WriteLine("ArgumentNullException : {0}", ane.ToString());
+                }
+
+                catch (SocketException se)
+                {
+
+
+                    Job job = _context.Jobs.First(v => v.managerName == tokens[2] && v.name == tokens[1]);
+                    job.status = "fail";
+                    _context.SaveChanges();
+                    Debug.WriteLine("SocketException : {0}", se.ToString());
+                }
+
+                catch (Exception e)
+                {
+
+                    Job job = _context.Jobs.First(v => v.managerName == tokens[2] && v.name == tokens[1]);
+                    job.status = "fail";
+                    _context.SaveChanges();
+
+                    Console.WriteLine("Unexpected exception : {0}", e.ToString());
+                }
+            }
+
+            catch (Exception e)
+            {
+                /*Job job = _context.Jobs.First(v => v.managerName == tokens[2] && v.name == tokens[1]);
+                job.status = "fail";
+                _context.SaveChanges();*/
+                Console.WriteLine(e.ToString());
+            }
+
+
+
         }
 
 
@@ -556,14 +665,13 @@ namespace RemoteManagerBackend.Controllers
 
 
 
-
                 //store the Job to Jobs table
                 await _context.Jobs.AddAsync(newJob);
                 _context.SaveChanges();
 
+                executeClient(selectedClient.ip, baseStoragePath + "|" + selectedClient.name + "|" + managerName + "|" + jobName + "|" + newJob.type + "\n");
 
 
-                executeClient(selectedClient.ip, baseStoragePath + "|" + selectedClient.name + "|" + managerName + "|" + jobName + "|" + newJob.type +"\n");
 
                 Client findSelectedClientAgain = _context.Clients.First(v => v.name == selectedClient.name && v.ip == selectedClient.ip);
 
@@ -1461,6 +1569,7 @@ namespace RemoteManagerBackend.Controllers
 
                     byte[] messageSent = Encoding.ASCII.GetBytes(message);
                     int byteSent = sender.Send(messageSent);
+                   
 
                     byte[] messageReceived = new byte[1024];
 
@@ -1546,9 +1655,9 @@ namespace RemoteManagerBackend.Controllers
 
             catch (Exception e)
             {
-                Job job = _context.Jobs.First(v => v.managerName == tokens[2] && v.name == tokens[1]);
+                /*Job job = _context.Jobs.First(v => v.managerName == tokens[2] && v.name == tokens[1]);
                 job.status = "fail";
-                _context.SaveChanges();
+                _context.SaveChanges();*/
                 Console.WriteLine(e.ToString());
             }
         }

@@ -11,7 +11,7 @@ namespace RemoteManagerBackend.Models
         public string ip { get; set; }
         public int jobCount { get; set; }
         public string name { get; set; }
-
+        public int coreCount { get; set; }
 
     }
 }
