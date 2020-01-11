@@ -1615,40 +1615,42 @@ namespace RemoteManagerBackend.Controllers
 
         void executeClient2(Client client, List<string> jobs)
         {
-
-            for(int i = 0; i < jobs.Count; i++)
+            try
             {
-
                 String ipAddress = client.ip;
-                String message = jobs[i];
 
+                // Establish the remote endpoint  
+                // for the socket. This example  
+                // uses port 11111 on the local  
+                // computer. 
+                IPHostEntry ipHost = Dns.GetHostEntry(Dns.GetHostName());
+                IPAddress ipAddr = ipHost.AddressList[0];
+                IPEndPoint localEndPoint = new IPEndPoint(IPAddress.Parse(ipAddress), 8888);
 
+                // Creation TCP/IP Socket using  
+                // Socket Class Costructor 
+                Socket sender = new Socket(IPAddress.Parse(ipAddress).AddressFamily,
+                           SocketType.Stream, ProtocolType.Tcp);
+                sender.Connect(localEndPoint);
 
-
-
-                string[] tokens = null;
-                try
+                for (int i = 0; i < jobs.Count; i++)
                 {
 
-                    // Establish the remote endpoint  
-                    // for the socket. This example  
-                    // uses port 11111 on the local  
-                    // computer. 
-                    IPHostEntry ipHost = Dns.GetHostEntry(Dns.GetHostName());
-                    IPAddress ipAddr = ipHost.AddressList[0];
-                    IPEndPoint localEndPoint = new IPEndPoint(IPAddress.Parse(ipAddress), 8888);
+                    String message = jobs[i];
 
-                    // Creation TCP/IP Socket using  
-                    // Socket Class Costructor 
-                    Socket sender = new Socket(IPAddress.Parse(ipAddress).AddressFamily,
-                               SocketType.Stream, ProtocolType.Tcp);
+
+
+
+
+                    string[] tokens = null;
+
+
 
                     try
                     {
 
                         // Connect Socket to the remote  
                         // endpoint using method Connect() 
-                        sender.Connect(localEndPoint);
 
                         // We print EndPoint information  
                         // that we are connected 
@@ -1669,72 +1671,76 @@ namespace RemoteManagerBackend.Controllers
                               Encoding.ASCII.GetString(messageReceived,
                                                          0, byteRecv));
 
-
-
-                        if (Encoding.ASCII.GetString(messageReceived, 0, byteRecv) != "error")
+                        lock (_object)
                         {
-                            string doneJobPath = Encoding.ASCII.GetString(messageReceived, 0, byteRecv);
-
-                            doneJobPath = doneJobPath.Replace("/", "\\");
-                            doneJobPath = doneJobPath.Replace("//", "\\");
-                            doneJobPath = doneJobPath.Replace("\\\\\\\\", "\\");
-                            doneJobPath = doneJobPath.Replace("\\\\\\", "\\");
-                            doneJobPath = doneJobPath.Replace("\\\\", "\\");
-                            doneJobPath = doneJobPath.Replace("/", "\\");
-                            doneJobPath = doneJobPath.Replace("//", "\\");
-                            doneJobPath = "\\" + doneJobPath;
-
-
-                            tokens = doneJobPath.Split('*');
-
-                            // linux client 
-                            tokens[2] = Regex.Replace(tokens[2], @"\t|\n|\r", "");
-                            // windows client tokens[2] = tokens[2].Substring(0, tokens[2].Length - 2);
-
-
-                            Job job = _context.Jobs.First(v => v.managerName == tokens[2] && v.name == tokens[1]);
-                            job.status = "finish";
-                            job.path = doneJobPath.Split("*")[0];
-
-                            _context.SaveChanges();
-
-                        }
-
-
-
-                        messageSent = Encoding.ASCII.GetBytes("bye");
-                        byteSent = sender.Send(messageSent);
-
-
-                        sender.Shutdown(SocketShutdown.Both);
-                        sender.Close();
-
-
-
-
-
-                        Client findSelectedClientAgain = _context.Clients.First(v => v.ip == client.ip);
-
-                        if (findSelectedClientAgain != null)
-                        {
-                            bool saveFailed;
-                            do
+                            Debug.WriteLine("hello111");
+                            if (Encoding.ASCII.GetString(messageReceived, 0, byteRecv) != "error")
                             {
-                                saveFailed = false;
-                                --findSelectedClientAgain.jobCount;
+                                string doneJobPath = Encoding.ASCII.GetString(messageReceived, 0, byteRecv);
 
-                                try
+                                doneJobPath = doneJobPath.Replace("/", "\\");
+                                doneJobPath = doneJobPath.Replace("//", "\\");
+                                doneJobPath = doneJobPath.Replace("\\\\\\\\", "\\");
+                                doneJobPath = doneJobPath.Replace("\\\\\\", "\\");
+                                doneJobPath = doneJobPath.Replace("\\\\", "\\");
+                                doneJobPath = doneJobPath.Replace("/", "\\");
+                                doneJobPath = doneJobPath.Replace("//", "\\");
+                                doneJobPath = "\\" + doneJobPath;
+
+
+                                tokens = doneJobPath.Split('*');
+
+                                // linux client 
+                                tokens[2] = Regex.Replace(tokens[2], @"\t|\n|\r", "");
+                                // windows client tokens[2] = tokens[2].Substring(0, tokens[2].Length - 2);
+
+                                Debug.WriteLine("hello222");
+
+                                Job job = _context.Jobs.First(v => v.managerName == tokens[2] && v.name == tokens[1]);
+                                job.status = "finish";
+                                job.path = doneJobPath.Split("*")[0];
+                                Debug.WriteLine("hello25252525");
+
+                            
+                                _context.SaveChanges();
+                            
+                                Debug.WriteLine("hello333");
+
+
+                            }
+
+
+
+
+
+
+
+                            Debug.WriteLine("hello444");
+
+                      
+                            Client findSelectedClientAgain = _context.Clients.First(v => v.ip == client.ip);
+                            if (findSelectedClientAgain != null)
+                            {
+                                bool saveFailed;
+                                do
                                 {
-                                    _context.SaveChanges();
-                                }
-                                catch (DbUpdateConcurrencyException e)
-                                {
-                                    saveFailed = true;
-                                    e.Entries.Single().Reload();
-                                }
-                            } while (saveFailed);
+                                    saveFailed = false;
+                                    --findSelectedClientAgain.jobCount;
+
+                                    try
+                                    {
+                                         _context.SaveChanges();
+                                    }
+                                    catch (DbUpdateConcurrencyException e)
+                                    {
+                                        saveFailed = true;
+                                        e.Entries.Single().Reload();
+                                    }
+                                } while (saveFailed);
+                            }
+                            Debug.WriteLine("hello555");
+
                         }
-
 
 
 
@@ -1771,31 +1777,30 @@ namespace RemoteManagerBackend.Controllers
 
                         Console.WriteLine("Unexpected exception : {0}", e.ToString());
                     }
-                }
-
-                catch (Exception e)
-                {
-                    /*Job job = _context.Jobs.First(v => v.managerName == tokens[2] && v.name == tokens[1]);
-                    job.status = "fail";
-                    _context.SaveChanges();*/
-                    Console.WriteLine(e.ToString());
 
                 }
 
+                byte[] byeSent = Encoding.ASCII.GetBytes("bye");
+                int byteByeSent = sender.Send(byeSent);
 
 
-
-
-
-
-
-
-
-
-
+                sender.Shutdown(SocketShutdown.Both);
+                sender.Close();
 
             }
 
+
+            catch (Exception e)
+            {
+                /*Job job = _context.Jobs.First(v => v.managerName == tokens[2] && v.name == tokens[1]);
+                job.status = "fail";
+                _context.SaveChanges();*/
+                Console.WriteLine(e.ToString());
+
+            }
+
+
+    
 
 
 
