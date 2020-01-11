@@ -62,6 +62,69 @@ namespace RemoteManagerBackend.Controllers
 
         }
 
+        [HttpGet("my-job-list/{managerName}")]
+        public string myJobList(string managerName)
+        {
+
+            List<Job> managerJobs = _context.Jobs.Where(v => v.managerName == "Manager-" + managerName).ToList();
+
+            for (int i=0;i<managerJobs.Count;i++)
+            {
+                if(managerJobs[i].type!="Single Job")
+                {
+                    String[] jobNameArr = managerJobs[i].name.Split("-");
+                    managerJobs[i].name = jobNameArr[0]+"-"+jobNameArr[1];
+                }
+            }
+
+            Dictionary<string, Job> nameGroupJobs = new Dictionary<string, Job>();
+
+
+            for (int i = 0; i < managerJobs.Count; i++)
+            {
+                if (!nameGroupJobs.ContainsKey((managerJobs[i].name))){
+                    nameGroupJobs.Add(managerJobs[i].name, managerJobs[i]);
+                }
+
+            }
+
+
+
+
+            return JsonConvert.SerializeObject(nameGroupJobs.Values.ToList());
+
+        }
+
+        [HttpGet("my-subjob-list/{managerName}/{parentJobName}")]
+        public string getSubJobs(string managerName, string parentJobName)
+        {
+
+            List<Job> managerJobs = _context.Jobs.Where(v => v.managerName == "Manager-" + managerName).ToList();
+            if (parentJobName != "undefined")
+            {
+                parentJobName = parentJobName.Split("-")[1];
+
+            }
+
+            List<Job> subJobs = new List<Job>();
+
+            for(int i =0; i < managerJobs.Count; i++)
+            {
+                String[] jobNameArr = managerJobs[i].name.Split("-");
+                String localParentJobName = jobNameArr[1];
+                if (localParentJobName == parentJobName)
+                {
+                    subJobs.Add(managerJobs[i]);
+                }          
+
+            }
+
+
+
+            return JsonConvert.SerializeObject(subJobs);
+
+        }
+
         [HttpGet("{clients}")]
         public string Get3()
         {
