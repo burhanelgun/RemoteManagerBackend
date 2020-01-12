@@ -16,6 +16,8 @@ namespace RemoteManagerBackend.Models
         public String type { get; set; }
         public String status { get; set; }
 
+        public String description { get; set; }
+
     }
 }
 

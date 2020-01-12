@@ -18,6 +18,8 @@ namespace RemoteManagerBackend.Models
             this.path = job.path;
             this.status = job.status;
             this.type = job.type;
+            this.description = job.description;
+
         }
         public int progress { get; set; }
 

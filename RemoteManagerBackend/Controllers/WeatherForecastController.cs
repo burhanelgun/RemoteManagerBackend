@@ -109,6 +109,7 @@ namespace RemoteManagerBackend.Controllers
             
             int doneCount = 0;
             int totalCount = 0;
+            int failCount = 0;
             string parentJobName = job.name.Split("-")[1];
 
 
@@ -125,12 +126,23 @@ namespace RemoteManagerBackend.Controllers
                     {
                         doneCount++;
                     }
+                    else if (managerJobs[i].status == "fail")
+                    {
+                        failCount++;
+                    }
                 }
                 
             }
             if(job.type!="Single Job")
             {
+                //all jobs failed
+                if (failCount == totalCount)
+                {
+                    return -1;
+                }
+
                 return 100 * doneCount / totalCount;
+
 
             }
             else
@@ -524,29 +536,10 @@ namespace RemoteManagerBackend.Controllers
 
 
 
-            executeClient(selectedClient.ip, baseStoragePath + "|" + selectedClient.name + "|" + managerName + "|" + jobName + "|" + newJob.type + "\n");
+            List<string> jobList = new List<string>();
+            jobList.Add(baseStoragePath + "|" + selectedClient.name + "|" + managerName + "|" + jobName + "|" + newJob.type + "\n");
 
-            Client findSelectedClientAgain = _context.Clients.First(v => v.name == selectedClient.name && v.ip == selectedClient.ip);
-
-            if (findSelectedClientAgain != null)
-            {
-                bool saveFailed;
-                do
-                {
-                    saveFailed = false;
-                    --findSelectedClientAgain.jobCount;
-
-                    try
-                    {
-                        _context.SaveChanges();
-                    }
-                    catch (DbUpdateConcurrencyException e)
-                    {
-                        saveFailed = true;
-                        e.Entries.Single().Reload();
-                    }
-                } while (saveFailed);
-            }
+            executeClient2(selectedClient, jobList);
 
 
         }
@@ -1899,9 +1892,18 @@ namespace RemoteManagerBackend.Controllers
 
             catch (Exception e)
             {
-                /*Job job = _context.Jobs.First(v => v.managerName == tokens[2] && v.name == tokens[1]);
-                job.status = "fail";
-                _context.SaveChanges();*/
+                for(int i = 0; i < jobs.Count; i++)
+                {
+                    string managerName = jobs[i].Split("\\")[4].Split("|")[2];
+                    string jobName = jobs[i].Split("\\")[4].Split("|")[3];
+                    Job job = _context.Jobs.First(v => v.managerName == managerName && v.name == jobName);
+                    job.status = "fail";
+                    job.description = e.Message.ToString();
+
+                    
+                }
+
+                _context.SaveChanges();
                 Console.WriteLine(e.ToString());
 
             }
