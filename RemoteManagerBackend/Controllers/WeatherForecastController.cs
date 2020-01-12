@@ -1004,31 +1004,56 @@ namespace RemoteManagerBackend.Controllers
                     // Manage of Socket's Exceptions 
                     catch (ArgumentNullException ane)
                     {
+                        for (int j = 0; j < jobs.Count; j++)
+                        {
+                            string managerName = jobs[j].Split("\\")[4].Split("|")[2];
+                            string jobName = jobs[j].Split("\\")[4].Split("|")[3];
+                            Job job = _context.Jobs.First(v => v.managerName == managerName && v.name == jobName);
+                            job.status = "fail";
+                            job.description = ane.Message.ToString();
 
-                        Job job = _context.Jobs.First(v => v.managerName == tokens[2] && v.name == tokens[1]);
-                        job.status = "fail";
+
+                        }
+
                         _context.SaveChanges();
-                        Console.WriteLine("ArgumentNullException : {0}", ane.ToString());
+                        Console.WriteLine(ane.ToString());
                     }
 
                     catch (SocketException se)
                     {
 
 
-                        Job job = _context.Jobs.First(v => v.managerName == tokens[2] && v.name == tokens[1]);
-                        job.status = "fail";
+                        for (int j = 0; j < jobs.Count; j++)
+                        {
+                            string managerName = jobs[j].Split("\\")[4].Split("|")[2];
+                            string jobName = jobs[j].Split("\\")[4].Split("|")[3];
+                            Job job = _context.Jobs.First(v => v.managerName == managerName && v.name == jobName);
+                            job.status = "fail";
+                            job.description = se.Message.ToString();
+
+
+                        }
+
                         _context.SaveChanges();
-                        Debug.WriteLine("SocketException : {0}", se.ToString());
+                        Console.WriteLine(se.ToString());
                     }
 
                     catch (Exception e)
                     {
 
-                        Job job = _context.Jobs.First(v => v.managerName == tokens[2] && v.name == tokens[1]);
-                        job.status = "fail";
-                        _context.SaveChanges();
+                        for (int j = 0; j < jobs.Count; j++)
+                        {
+                            string managerName = jobs[j].Split("\\")[4].Split("|")[2];
+                            string jobName = jobs[j].Split("\\")[4].Split("|")[3];
+                            Job job = _context.Jobs.First(v => v.managerName == managerName && v.name == jobName);
+                            job.status = "fail";
+                            job.description = e.Message.ToString();
 
-                        Console.WriteLine("Unexpected exception : {0}", e.ToString());
+
+                        }
+
+                        _context.SaveChanges();
+                        Console.WriteLine(e.ToString());
                     }
 
                 }
