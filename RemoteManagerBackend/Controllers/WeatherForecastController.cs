@@ -87,12 +87,56 @@ namespace RemoteManagerBackend.Controllers
                 }
 
             }
+            List<Job> patentJobsWithOutProgress = nameGroupJobs.Values.ToList();
+            List<ParentJob> patentJobsWithProgress = new List<ParentJob>();
+
+            for (int i=0;i< patentJobsWithOutProgress.Count;i++)
+            {
+                int progress = calculateProgressFor(patentJobsWithOutProgress[i]);
+                patentJobsWithProgress.Add(new ParentJob(progress, patentJobsWithOutProgress[i]));
+            }
+
+            
 
 
 
+            return JsonConvert.SerializeObject(patentJobsWithProgress.ToList());
 
-            return JsonConvert.SerializeObject(nameGroupJobs.Values.ToList());
+        }
 
+        private int calculateProgressFor(Job job)
+        {
+            
+            int doneCount = 0;
+            int totalCount = 0;
+            string parentJobName = job.name.Split("-")[1];
+
+
+            List<Job> managerJobs = _context.Jobs.Where(v => v.managerName == job.managerName).ToList();
+            for (int i = 0; i < managerJobs.Count; i++)
+            {
+
+                String[] jobNameArr = managerJobs[i].name.Split("-");
+                String localParentJobName = jobNameArr[1];
+                if (localParentJobName == parentJobName)
+                {
+                    totalCount++;
+                    if (managerJobs[i].status == "finish")
+                    {
+                        doneCount++;
+                    }
+                }
+                
+            }
+            if(job.type!="Single Job")
+            {
+                return 100 * doneCount / totalCount;
+
+            }
+            else
+            {
+                return 999;
+            }
         }
 
         [HttpGet("my-subjob-list/{managerName}/{parentJobName}")]
