@@ -479,110 +479,148 @@ namespace RemoteManagerBackend.Controllers
 
 
 
-            //create the job path
-            Debug.WriteLine("jobPath:", jobPath);
 
-            if (!Directory.Exists(jobPath))
+            Job job = _context.Jobs.FirstOrDefault(v => v.managerName == managerName && v.name == jobName);
+
+            if (job == null)
             {
-                Debug.WriteLine("jobPath is not exist");
 
-                Directory.CreateDirectory(jobPath);
+                //create the job path
+                Debug.WriteLine("jobPath:", jobPath);
 
-                Debug.WriteLine("jobPath is created");
-
-
-            }
-
-
-
-            //create a Job object to store in the Jobs table
-
-            Job newJob = new Job();
-            newJob.type = typeJob;
-            newJob.status = "working";
-            newJob.managerName = managerName;
-            newJob.clientName = selectedClient.name;
-            newJob.name = jobName;
-            jobPath = jobPath.Replace("/", "\\");
-            jobPath = jobPath.Replace("//", "\\");
-            jobPath = jobPath.Replace("\\\\\\\\", "\\");
-            jobPath = jobPath.Replace("\\\\\\", "\\");
-            jobPath = jobPath.Replace("\\\\", "\\");
-            jobPath = jobPath.Replace("/", "\\");
-            jobPath = jobPath.Replace("//", "\\");
-            jobPath = "\\" + jobPath;
-            newJob.path = jobPath;
-
-
-            //for only Executable job(normally set to the ExecutableJob class datafields)
-            String pythonScriptFilePath = jobPath + pythonScriptFile.FileName;
-            var pythonScriptFilePathVar = Path.Combine(Directory.GetCurrentDirectory(), pythonScriptFilePath);
-            using (var fileStream = new FileStream(pythonScriptFilePathVar, FileMode.Create))
-            {
-                await pythonScriptFile.CopyToAsync(fileStream);
-            }
-
-
-            String parametersFilePath = null;
-            if (parametersFile != null)
-            {
-                parametersFilePath = jobPath + parametersFile.FileName;
-
-                var parametersFilePathVar = Path.Combine(Directory.GetCurrentDirectory(), parametersFilePath);
-                using (var fileStream = new FileStream(parametersFilePathVar, FileMode.Create))
+                if (!Directory.Exists(jobPath))
                 {
-                    await parametersFile.CopyToAsync(fileStream);
-                }
-            }
+                    Debug.WriteLine("jobPath is not exist");
+
+                    Directory.CreateDirectory(jobPath);
+
+                    Debug.WriteLine("jobPath is created");
 
 
-            String[] executableFilesPaths = null;
-            if (executableFiles != null)
-            {
-                executableFilesPaths = new String[executableFiles.Length];
-                for (int i = 0; i < executableFiles.Length; i++)
-                {
-                    executableFilesPaths[i] = jobPath + executableFiles[i].FileName;
                 }
 
-                for (int i = 0; i < executableFiles.Length; i++)
+
+
+                //create a Job object to store in the Jobs table
+
+                Job newJob = new Job();
+                newJob.type = typeJob;
+                newJob.status = "working";
+                newJob.managerName = managerName;
+                newJob.clientName = selectedClient.name;
+                newJob.name = jobName;
+                jobPath = jobPath.Replace("/", "\\");
+                jobPath = jobPath.Replace("//", "\\");
+                jobPath = jobPath.Replace("\\\\\\\\", "\\");
+                jobPath = jobPath.Replace("\\\\\\", "\\");
+                jobPath = jobPath.Replace("\\\\", "\\");
+                jobPath = jobPath.Replace("/", "\\");
+                jobPath = jobPath.Replace("//", "\\");
+                jobPath = "\\" + jobPath;
+                newJob.path = jobPath;
+
+
+                //for only Executable job(normally set to the ExecutableJob class datafields)
+                String pythonScriptFilePath = jobPath + pythonScriptFile.FileName;
+                var pythonScriptFilePathVar = Path.Combine(Directory.GetCurrentDirectory(), pythonScriptFilePath);
+                using (var fileStream = new FileStream(pythonScriptFilePathVar, FileMode.Create))
                 {
-                    var executableFilePathVar = Path.Combine(Directory.GetCurrentDirectory(), executableFilesPaths[i]);
-                    using (var fileStream = new FileStream(executableFilePathVar, FileMode.Create))
+                    await pythonScriptFile.CopyToAsync(fileStream);
+                }
+
+
+                String parametersFilePath = null;
+                if (parametersFile != null)
+                {
+                    parametersFilePath = jobPath + parametersFile.FileName;
+
+                    var parametersFilePathVar = Path.Combine(Directory.GetCurrentDirectory(), parametersFilePath);
+                    using (var fileStream = new FileStream(parametersFilePathVar, FileMode.Create))
                     {
-                        await executableFiles[i].CopyToAsync(fileStream);
+                        await parametersFile.CopyToAsync(fileStream);
                     }
                 }
-            }
 
 
-            String[] inputFilesPaths = null;
-            if (inputFiles != null)
-            {
-                inputFilesPaths = new String[inputFiles.Length];
-                for (int i = 0; i < inputFiles.Length; i++)
+                String[] executableFilesPaths = null;
+                if (executableFiles != null)
                 {
-                    inputFilesPaths[i] = jobPath + inputFiles[i].FileName;
-                }
-
-                for (int i = 0; i < inputFiles.Length; i++)
-                {
-                    var executableFilePathVar = Path.Combine(Directory.GetCurrentDirectory(), inputFilesPaths[i]);
-                    using (var fileStream = new FileStream(executableFilePathVar, FileMode.Create))
+                    executableFilesPaths = new String[executableFiles.Length];
+                    for (int i = 0; i < executableFiles.Length; i++)
                     {
-                        await inputFiles[i].CopyToAsync(fileStream);
+                        executableFilesPaths[i] = jobPath + executableFiles[i].FileName;
+                    }
+
+                    for (int i = 0; i < executableFiles.Length; i++)
+                    {
+                        var executableFilePathVar = Path.Combine(Directory.GetCurrentDirectory(), executableFilesPaths[i]);
+                        using (var fileStream = new FileStream(executableFilePathVar, FileMode.Create))
+                        {
+                            await executableFiles[i].CopyToAsync(fileStream);
+                        }
                     }
                 }
+
+
+                String[] inputFilesPaths = null;
+                if (inputFiles != null)
+                {
+                    inputFilesPaths = new String[inputFiles.Length];
+                    for (int i = 0; i < inputFiles.Length; i++)
+                    {
+                        inputFilesPaths[i] = jobPath + inputFiles[i].FileName;
+                    }
+
+                    for (int i = 0; i < inputFiles.Length; i++)
+                    {
+                        var executableFilePathVar = Path.Combine(Directory.GetCurrentDirectory(), inputFilesPaths[i]);
+                        using (var fileStream = new FileStream(executableFilePathVar, FileMode.Create))
+                        {
+                            await inputFiles[i].CopyToAsync(fileStream);
+                        }
+                    }
+                }
+
+                //store the Job to Jobs table
+                await _context.Jobs.AddAsync(newJob);
+                _context.SaveChanges();
+
+                List<string> jobList = new List<string>();
+                jobList.Add(baseStoragePath + "|" + selectedClient.name + "|" + managerName + "|" + jobName + "|" + newJob.type + "\n");
+
+                executeClient2(selectedClient, jobList);
+
+
+
+            }
+            else
+            {
+                //this job name is already used by the same manager
+                Client findSelectedClientAgain = _context.Clients.First(v => v.ip == selectedClient.ip);
+                if (findSelectedClientAgain != null)
+                {
+                    bool saveFailed;
+                    do
+                    {
+                        saveFailed = false;
+                        --findSelectedClientAgain.jobCount;
+
+                        try
+                        {
+                            _context.SaveChanges();
+                        }
+                        catch (DbUpdateConcurrencyException e)
+                        {
+                            saveFailed = true;
+                            e.Entries.Single().Reload();
+                        }
+                    } while (saveFailed);
+                }
             }
 
-            //store the Job to Jobs table
-            await _context.Jobs.AddAsync(newJob);
-            _context.SaveChanges();
 
-            List<string> jobList = new List<string>();
-            jobList.Add(baseStoragePath + "|" + selectedClient.name + "|" + managerName + "|" + jobName + "|" + newJob.type + "\n");
 
-            executeClient2(selectedClient, jobList);
+
 
 
         }
@@ -651,6 +689,36 @@ namespace RemoteManagerBackend.Controllers
                 String managerName = "Manager-" + email;
                 String typeJob = jobType;
 
+
+
+                Job job = _context.Jobs.FirstOrDefault(v => v.managerName == managerName && v.name == jobName);
+                if (job != null)
+                {
+                    //this job name is already used by the same manager
+
+                    Client findSelectedClientAgain = _context.Clients.First(v => v.ip == selectedClient.ip);
+                    if (findSelectedClientAgain != null)
+                    {
+                        bool saveFailed;
+                        do
+                        {
+                            saveFailed = false;
+                            --findSelectedClientAgain.jobCount;
+
+                            try
+                            {
+                                _context.SaveChanges();
+                            }
+                            catch (DbUpdateConcurrencyException e)
+                            {
+                                saveFailed = true;
+                                e.Entries.Single().Reload();
+                            }
+                        } while (saveFailed);
+                    }
+
+                    break;
+                }
 
 
                 //create the job path
@@ -854,6 +922,36 @@ namespace RemoteManagerBackend.Controllers
                 String jobName = "Job-" + name + "-" + (k + 1);
                 String managerName = "Manager-" + email;
                 String typeJob = jobType;
+
+                Job job = _context.Jobs.FirstOrDefault(v => v.managerName == managerName && v.name == jobName);
+                if (job != null)
+                {
+                    //this job name is already used by the same manager
+
+                    Client findSelectedClientAgain = _context.Clients.First(v => v.ip == selectedClient.ip);
+                    if (findSelectedClientAgain != null)
+                    {
+                        bool saveFailed;
+                        do
+                        {
+                            saveFailed = false;
+                            --findSelectedClientAgain.jobCount;
+
+                            try
+                            {
+                                _context.SaveChanges();
+                            }
+                            catch (DbUpdateConcurrencyException e)
+                            {
+                                saveFailed = true;
+                                e.Entries.Single().Reload();
+                            }
+                        } while (saveFailed);
+                    }
+
+                    break;
+                }
+
 
 
                 if (!Directory.Exists(jobPath))
@@ -1089,7 +1187,6 @@ namespace RemoteManagerBackend.Controllers
                                     }
                                 } while (saveFailed);
                             }
-                            Debug.WriteLine("hello555");
 
                         }
 
