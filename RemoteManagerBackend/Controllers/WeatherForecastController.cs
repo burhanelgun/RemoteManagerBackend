@@ -299,6 +299,89 @@ namespace RemoteManagerBackend.Controllers
         }
 
 
+        [HttpPost("job/stopJob")]
+        public void stopJob([FromForm] string email, [FromForm] string jobName)
+        {
+            Job job = _context.Jobs.FirstOrDefault(v => v.managerName == "Manager-"+email && v.name == jobName);
+            Client client = _context.Clients.FirstOrDefault(v => v.name == job.clientName);
+            stopJobFor(job, client);
+
+        }
+
+        private void stopJobFor(Job job, Client client)
+        {
+
+            String ipAddress = client.ip;
+            String message = "stop|"+job.managerName+"|"+job.name+"\n";
+
+
+            string[] tokens = null;
+            try
+            {
+                IPHostEntry ipHost = Dns.GetHostEntry(Dns.GetHostName());
+                IPAddress ipAddr = ipHost.AddressList[0];
+                IPEndPoint localEndPoint = new IPEndPoint(IPAddress.Parse(ipAddress), 8888);
+
+                Socket sender = new Socket(IPAddress.Parse(ipAddress).AddressFamily,
+                           SocketType.Stream, ProtocolType.Tcp);
+
+                try
+                {
+
+                    sender.Connect(localEndPoint);
+
+                    Console.WriteLine("Socket connected to -> {0} ",
+                                  sender.RemoteEndPoint.ToString());
+
+                    byte[] messageSent = Encoding.ASCII.GetBytes(message);
+                    int byteSent = sender.Send(messageSent);
+
+
+                    byte[] messageReceived = new byte[1024];
+
+                    int byteRecv = sender.Receive(messageReceived);
+
+
+                    //Jobs table content should like this.
+                    Debug.WriteLine("Message from Server -> {111203}",
+                          Encoding.ASCII.GetString(messageReceived,
+                                                     0, byteRecv));
+
+
+                    messageSent = Encoding.ASCII.GetBytes("bye");
+                    byteSent = sender.Send(messageSent);
+
+
+                    sender.Shutdown(SocketShutdown.Both);
+                    sender.Close();
+                }
+
+                // Manage of Socket's Exceptions 
+                catch (ArgumentNullException ane)
+                {
+                    Console.WriteLine("ArgumentNullException : {0}", ane.ToString());
+                }
+
+                catch (SocketException se)
+                {
+                    Debug.WriteLine("SocketException : {0}", se.ToString());
+                }
+
+                catch (Exception e)
+                {
+                    Console.WriteLine("Unexpected exception : {0}", e.ToString());
+                }
+            }
+
+            catch (Exception e)
+            {
+                Console.WriteLine(e.ToString());
+            }
+
+
+
+
+        }
 
         [HttpPost("downloadJob")]
         public FileStream DownloadFile([FromForm] string email, [FromForm] string jobName)
