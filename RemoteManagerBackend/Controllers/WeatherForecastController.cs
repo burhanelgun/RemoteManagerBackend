@@ -52,6 +52,17 @@ namespace RemoteManagerBackend.Controllers
 
         }
 
+
+        [HttpGet("get-job/{managerName}/{jobName}")]
+        public string getJob(string managerName,string jobName)
+        {
+
+            Job managerJob = _context.Jobs.FirstOrDefault(v => v.managerName == "Manager-" + managerName && v.name==jobName);
+
+            return JsonConvert.SerializeObject(managerJob);
+
+        }
+
         [HttpGet("my-job-list/{managerName}")]
         public string myJobList(string managerName)
         {
